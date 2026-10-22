@@ -5,11 +5,18 @@
 
 # Read more: https://github.com/cyu/rack-cors
 
-Rails.application.config.middleware.insert_before 0, Rack::Cors do
-  allow do
-    origins "*" # Tu pourras remplacer "*" par l'URL exacte Netlify plus tard
-    resource "*",
-      headers: :any,
-      methods: [:get, :post, :put, :patch, :delete, :options, :head]
+allowed_origins = ENV.fetch("FRONTEND_ORIGINS", "").split(",").map(&:strip).reject(&:empty?)
+allowed_origins = [ "http://localhost:5173" ] if allowed_origins.empty? && Rails.env.development?
+
+if allowed_origins.any?
+  Rails.application.config.middleware.insert_before 0, Rack::Cors do
+    allow do
+      origins(*allowed_origins)
+
+      resource "*",
+        headers: :any,
+        methods: [ :get, :post, :put, :patch, :delete, :options, :head ],
+        credentials: true
+    end
   end
 end
