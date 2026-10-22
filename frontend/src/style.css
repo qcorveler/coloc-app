@@ -252,6 +252,135 @@ code {
   color: var(--accent);
 }
 
+.screen textarea,
+.screen input[type='file'] {
+  font: inherit;
+  color: var(--text-h);
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 12px 14px;
+}
+
+.screen textarea {
+  min-height: 120px;
+  resize: vertical;
+}
+
+.screen a.button,
+.actions a.button {
+  display: block;
+  text-align: center;
+  text-decoration: none;
+  box-sizing: border-box;
+  font: inherit;
+  margin-top: 8px;
+  border-radius: 8px;
+  padding: 12px 16px;
+  background: var(--accent);
+  color: white;
+}
+
+.screen a.button.secondary,
+.actions a.button.secondary {
+  background: transparent;
+  color: var(--text-h);
+  border: 1px solid var(--border);
+}
+
+.screen label.check {
+  flex-direction: row;
+  align-items: center;
+  gap: 8px;
+}
+
+.check input {
+  width: auto;
+}
+
+.coloc-list {
+  list-style: none;
+  padding: 0;
+  margin: 0 0 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.coloc-card {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  text-decoration: none;
+  color: inherit;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 10px;
+}
+
+.coloc-card strong,
+.muted {
+  display: block;
+}
+
+.muted {
+  color: var(--text);
+  font-size: 14px;
+}
+
+.thumb {
+  width: 64px;
+  height: 64px;
+  border-radius: 8px;
+  object-fit: cover;
+  flex: none;
+}
+
+.banner {
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  object-fit: cover;
+  border-radius: 12px;
+  margin-top: 12px;
+}
+
+.fallback {
+  display: grid;
+  place-items: center;
+  background: var(--accent-bg);
+  color: var(--accent);
+  font-weight: 600;
+}
+
+.thumb.fallback {
+  font-size: 24px;
+}
+
+.banner.fallback {
+  font-size: 48px;
+}
+
+.members {
+  padding-left: 18px;
+  margin: 0 0 20px;
+}
+
+.notice {
+  padding: 12px 14px;
+  border-radius: 8px;
+  background: var(--code-bg);
+  overflow-wrap: anywhere;
+}
+
+.actions {
+  display: flex;
+  flex-direction: column;
+}
+
+.errors {
+  margin-top: 16px;
+}
+
 #center {
   display: flex;
   flex-direction: column;

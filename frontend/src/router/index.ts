@@ -1,5 +1,6 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import { useAuth } from '../composables/useAuth'
+import { internalPath } from '../lib/redirect'
 
 declare module 'vue-router' {
   interface RouteMeta {
@@ -14,6 +15,26 @@ export const router = createRouter({
     {
       path: '/',
       component: () => import('../views/HomeView.vue'),
+      meta: { requiresAuth: true },
+    },
+    {
+      path: '/colocs/nouvelle',
+      component: () => import('../views/NewColocView.vue'),
+      meta: { requiresAuth: true },
+    },
+    {
+      path: '/colocs/:id',
+      component: () => import('../views/ColocView.vue'),
+      meta: { requiresAuth: true },
+    },
+    {
+      path: '/colocs/:id/modifier',
+      component: () => import('../views/EditColocView.vue'),
+      meta: { requiresAuth: true },
+    },
+    {
+      path: '/rejoindre/:token',
+      component: () => import('../views/JoinView.vue'),
       meta: { requiresAuth: true },
     },
     {
@@ -34,10 +55,10 @@ router.beforeEach(async (to) => {
   await ensureLoaded()
 
   if (to.meta.requiresAuth && !user.value) {
-    return { path: '/login' }
+    return { path: '/login', query: { redirect: to.fullPath } }
   }
 
   if (to.meta.guest && user.value) {
-    return { path: '/' }
+    return internalPath(to.query.redirect) ?? '/'
   }
 })

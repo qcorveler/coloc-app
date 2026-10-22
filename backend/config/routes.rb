@@ -8,5 +8,11 @@ Rails.application.routes.draw do
   namespace :api do
     resources :users, only: [ :create ]
     resource :session, only: [ :show, :create, :destroy ]
+    resources :colocs, only: [ :index, :show, :create, :update ] do
+      resource :membership, only: [ :destroy ], module: :colocs
+      resource :invitation, only: [ :create ], module: :colocs
+    end
+    get "invitations/:token", to: "invitations#show", as: :invitation
+    post "invitations/:token", to: "invitations#create"
   end
 end

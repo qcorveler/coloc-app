@@ -1,9 +1,11 @@
 <script setup lang="ts">
 import { ref } from 'vue'
-import { useRouter } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import { useAuth } from '../composables/useAuth'
 import { ApiError } from '../lib/api'
+import { internalPath } from '../lib/redirect'
 
+const route = useRoute()
 const router = useRouter()
 const { signup } = useAuth()
 
@@ -43,7 +45,7 @@ async function onSubmit() {
       last_name: lastName.value,
       date_of_birth: dateOfBirth.value,
     })
-    await router.push('/')
+    await router.push(internalPath(route.query.redirect) ?? '/')
   } catch (error) {
     errors.value = error instanceof ApiError ? error.errors : ['Une erreur est survenue']
   } finally {
@@ -88,7 +90,7 @@ async function onSubmit() {
     </form>
     <p class="switch">
       Déjà un compte ?
-      <RouterLink to="/login">Se connecter</RouterLink>
+      <RouterLink :to="{ path: '/login', query: route.query }">Se connecter</RouterLink>
     </p>
   </main>
 </template>

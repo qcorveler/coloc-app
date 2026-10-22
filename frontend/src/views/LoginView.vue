@@ -1,9 +1,11 @@
 <script setup lang="ts">
 import { ref } from 'vue'
-import { useRouter } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import { useAuth } from '../composables/useAuth'
 import { ApiError } from '../lib/api'
+import { internalPath } from '../lib/redirect'
 
+const route = useRoute()
 const router = useRouter()
 const { login } = useAuth()
 
@@ -17,7 +19,7 @@ async function onSubmit() {
   submitting.value = true
   try {
     await login(email.value, password.value)
-    await router.push('/')
+    await router.push(internalPath(route.query.redirect) ?? '/')
   } catch (error) {
     errors.value = error instanceof ApiError ? error.errors : ['Une erreur est survenue']
   } finally {
@@ -46,7 +48,7 @@ async function onSubmit() {
     </form>
     <p class="switch">
       Pas encore de compte ?
-      <RouterLink to="/signup">Créer un compte</RouterLink>
+      <RouterLink :to="{ path: '/signup', query: route.query }">Créer un compte</RouterLink>
     </p>
   </main>
 </template>
