@@ -1,0 +1,9 @@
+Project Stack:
+- Frontend: Vue 3 (Composition API, Script Setup), TypeScript, Vite, PWA (vite-plugin-pwa).
+- Backend: Ruby on Rails 7/8 (API mode only), ActionCable for WebSockets.
+- Structure: /frontend for Vue app, /backend for Rails API.
+
+Rules:
+- Write modern Vue 3 code using `<script setup lang="ts">`.
+- Keep Rails controllers thin, delegate logic to models or service objects.
+- Prefer clean RESTful design for Rails routes.
