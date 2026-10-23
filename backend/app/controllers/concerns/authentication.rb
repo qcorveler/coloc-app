@@ -33,15 +33,21 @@ module Authentication
         Current.session = session
         cookies.signed.permanent[:session_id] = {
           value: session.id,
-          httponly: true,
-          same_site: :none,
-          secure: true
+          **session_cookie_options
         }
       end
     end
 
     def terminate_session
       Current.session&.destroy
-      cookies.delete(:session_id, httponly: true, same_site: :none, secure: true)
+      cookies.delete(:session_id, **session_cookie_options)
+    end
+
+    def session_cookie_options
+      {
+        httponly: true,
+        same_site: :lax,
+        secure: Rails.env.production?
+      }
     end
 end

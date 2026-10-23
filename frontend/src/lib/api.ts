@@ -18,13 +18,17 @@ export class ApiError extends Error {
   }
 }
 
+function apiOrigin() {
+  return (import.meta.env.VITE_API_URL ?? '').replace(/\/$/, '')
+}
+
 export async function api<T>(path: string, options: RequestInit = {}): Promise<T> {
   const headers = new Headers(options.headers)
   if (options.body && !(options.body instanceof FormData) && !headers.has('Content-Type')) {
     headers.set('Content-Type', 'application/json')
   }
 
-  const response = await fetch(`${import.meta.env.VITE_API_URL}${path}`, {
+  const response = await fetch(`${apiOrigin()}${path}`, {
     ...options,
     headers,
     credentials: 'include',

@@ -16,6 +16,10 @@ class AuthenticationTest < ActionDispatch::IntegrationTest
     assert_equal "Ada", body.dig("user", "first_name")
     assert_not body.dig("user").key?("password_digest")
     assert cookies[:session_id].present?
+    set_cookie = response.headers["Set-Cookie"]
+    assert_match(/samesite=lax/i, set_cookie)
+    assert_match(/httponly/i, set_cookie)
+    assert_no_match(/secure/i, set_cookie)
 
     get api_session_path, as: :json
 

@@ -1,1 +1,3 @@
-/*    /index.html   200
+# Keep the session cookie on this site: the browser calls /api here, Netlify relays to Fly.
+/api/*  https://backend-humming-coral-8012.fly.dev/api/:splat  200
+/*      /index.html  200
