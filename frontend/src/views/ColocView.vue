@@ -88,6 +88,7 @@ async function leave() {
       </ul>
       <p v-if="notice" class="notice">{{ notice }}</p>
       <div class="actions">
+        <RouterLink class="button" :to="`/colocs/${coloc.id}/planning`">Planning</RouterLink>
         <button type="button" :disabled="submitting" @click="copyLink">Copier le lien d’invitation</button>
         <button type="button" class="secondary" :disabled="submitting" @click="refreshLink">
           Régénérer le lien

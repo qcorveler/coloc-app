@@ -5,6 +5,8 @@ class Coloc < ApplicationRecord
   has_secure_token :invite_token
   has_many :memberships, dependent: :destroy
   has_many :users, through: :memberships
+  has_many :events, dependent: :destroy
+  has_many :rotations, dependent: :destroy
   has_one_attached :photo
 
   normalizes :name, with: ->(name) { name.strip }

@@ -486,6 +486,288 @@ code {
   }
 }
 
+.screen.planning {
+  width: min(100%, 960px);
+}
+
+.planning h1 {
+  flex: 1;
+  margin: 0;
+  font-size: 22px;
+  letter-spacing: -0.4px;
+  text-align: center;
+}
+
+.planning .switch {
+  margin-top: 0;
+  margin-bottom: 12px;
+}
+
+.planning button {
+  box-sizing: border-box;
+  font: inherit;
+  margin: 0;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 8px 10px;
+  background: var(--bg);
+  color: var(--text-h);
+  cursor: pointer;
+}
+
+.planning button.primary {
+  background: var(--accent);
+  border-color: transparent;
+  color: white;
+}
+
+.planning button.secondary {
+  background: transparent;
+  color: var(--text-h);
+  border: 1px solid var(--border);
+}
+
+.planning button.selected {
+  border-color: var(--accent);
+  background: var(--accent-bg);
+}
+
+.planning button:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.toolbar.spread {
+  justify-content: space-between;
+}
+
+.planning select {
+  font: inherit;
+  color: var(--text-h);
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 12px 14px;
+}
+
+.month-head,
+.month,
+.time-head,
+.all-day,
+.hour-body {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+}
+
+.time-head,
+.all-day,
+.hour-body {
+  grid-template-columns: 52px repeat(var(--days), minmax(0, 1fr));
+}
+
+.month-head {
+  margin-bottom: 4px;
+  color: var(--text);
+  font-size: 12px;
+  text-align: center;
+}
+
+.day-cell {
+  min-height: 76px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 2px;
+  border-top: 1px solid var(--border);
+  border-left: 1px solid var(--border);
+  cursor: pointer;
+}
+
+.day-cell.outside {
+  opacity: 0.45;
+}
+
+.planning button.day-number {
+  width: fit-content;
+  min-width: 28px;
+  height: 28px;
+  padding: 0 6px;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+}
+
+.day-cell.today .day-number,
+.time-head .day-number {
+  font-size: 13px;
+}
+
+.day-cell.today .day-number {
+  background: var(--accent);
+  color: white;
+}
+
+.planning button.chip,
+.planning button.more,
+.planning button.block {
+  width: 100%;
+  overflow: hidden;
+  padding: 2px 4px;
+  border: 0;
+  border-radius: 4px;
+  font-size: 11px;
+  line-height: 1.3;
+  text-align: left;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.planning button.chip {
+  background: var(--accent-bg);
+  color: var(--text-h);
+}
+
+.planning button.chip.rotation,
+.planning button.block {
+  color: white;
+}
+
+.planning button.block {
+  position: absolute;
+  width: auto;
+  border-radius: 6px;
+  background: var(--accent);
+  z-index: 1;
+}
+
+.planning button.more {
+  background: transparent;
+  color: var(--text);
+}
+
+.time-scroll {
+  overflow-x: auto;
+}
+
+.time-grid {
+  min-width: 760px;
+}
+
+.time-grid.single {
+  min-width: 0;
+}
+
+.gutter {
+  color: var(--text);
+  font-size: 11px;
+}
+
+.all-day-cell {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-height: 28px;
+  padding: 2px;
+  border-top: 1px solid var(--border);
+  border-left: 1px solid var(--border);
+}
+
+.hour-pane {
+  max-height: 55svh;
+  overflow: auto;
+}
+
+.hour-body {
+  height: 1152px;
+}
+
+.hour-label {
+  height: 48px;
+  font-size: 11px;
+  color: var(--text);
+}
+
+.day-col {
+  position: relative;
+  height: 1152px;
+  border-left: 1px solid var(--border);
+  background-image: repeating-linear-gradient(
+    to bottom,
+    var(--border) 0,
+    var(--border) 1px,
+    transparent 1px,
+    transparent 48px
+  );
+}
+
+.weekday-row,
+.member-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.rotation-order {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.rotation-order li {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.sheet {
+  position: fixed;
+  inset: 0;
+  z-index: 20;
+  display: grid;
+  align-items: end;
+  background: rgba(0, 0, 0, 0.45);
+}
+
+.sheet-card {
+  width: min(100%, 560px);
+  max-height: 92svh;
+  margin: 0 auto;
+  overflow: auto;
+  box-sizing: border-box;
+  padding: 20px 20px 32px;
+  border-radius: 16px 16px 0 0;
+  background: var(--bg);
+  color: var(--text);
+}
+
+@media (min-width: 800px) {
+  .hour-pane {
+    max-height: 70svh;
+  }
+
+  .sheet {
+    align-items: center;
+    padding: 24px;
+  }
+
+  .sheet-card {
+    border-radius: 16px;
+  }
+}
+
 .ticks {
   position: relative;
   width: 100%;

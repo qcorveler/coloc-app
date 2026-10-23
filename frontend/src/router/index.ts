@@ -33,6 +33,11 @@ export const router = createRouter({
       meta: { requiresAuth: true },
     },
     {
+      path: '/colocs/:id/planning',
+      component: () => import('../views/PlanningView.vue'),
+      meta: { requiresAuth: true },
+    },
+    {
       path: '/rejoindre/:token',
       component: () => import('../views/JoinView.vue'),
       meta: { requiresAuth: true },

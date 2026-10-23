@@ -3,6 +3,8 @@ class User < ApplicationRecord
   has_many :sessions, dependent: :destroy
   has_many :memberships, dependent: :destroy
   has_many :colocs, through: :memberships
+  has_many :created_events, class_name: "Event", foreign_key: :created_by_id, dependent: :nullify
+  has_many :rotation_members, dependent: :destroy
 
   normalizes :email, with: ->(email) { email.strip.downcase }
 

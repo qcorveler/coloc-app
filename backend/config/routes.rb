@@ -11,6 +11,9 @@ Rails.application.routes.draw do
     resources :colocs, only: [ :index, :show, :create, :update ] do
       resource :membership, only: [ :destroy ], module: :colocs
       resource :invitation, only: [ :create ], module: :colocs
+      resource :calendar, only: [ :show ], module: :colocs
+      resources :events, only: [ :create, :update, :destroy ], module: :colocs
+      resources :rotations, only: [ :create, :update, :destroy ], module: :colocs
     end
     get "invitations/:token", to: "invitations#show", as: :invitation
     post "invitations/:token", to: "invitations#create"
