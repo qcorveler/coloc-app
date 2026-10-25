@@ -1,11 +1,13 @@
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue'
 import { useRoute } from 'vue-router'
+import DayAgenda from '../components/planning/DayAgenda.vue'
 import EventForm from '../components/planning/EventForm.vue'
 import MonthGrid from '../components/planning/MonthGrid.vue'
 import RotationForm from '../components/planning/RotationForm.vue'
 import TimeGrid from '../components/planning/TimeGrid.vue'
 import { ApiError } from '../lib/api'
+import { confirm } from '../lib/confirm'
 import {
   deleteEvent,
   deleteRotation,
@@ -34,6 +36,11 @@ const colocId = computed(() => String(route.params.id))
 const coloc = ref<Coloc | null>(null)
 const payload = ref<CalendarPayload>({ events: [], rotations: [] })
 const mode = ref<'month' | 'week' | 'day'>('month')
+const modeOptions = [
+  { label: 'Mois', value: 'month' },
+  { label: 'Semaine', value: 'week' },
+  { label: 'Jour', value: 'day' },
+]
 const cursor = ref(todayIso())
 const loading = ref(true)
 const errors = ref<string[]>([])
@@ -102,6 +109,14 @@ async function loadCalendar() {
   }
 }
 
+function setMode(value: string | number | null) {
+  if (value === 'month' || value === 'week' || value === 'day') mode.value = value
+}
+
+function closePanel(open: boolean) {
+  if (!open) panel.value = null
+}
+
 function shift(direction: number) {
   if (mode.value === 'month') cursor.value = addMonths(cursor.value, direction)
   else if (mode.value === 'week') cursor.value = addDays(cursor.value, direction * 7)
@@ -148,7 +163,7 @@ async function removeEvent(event: CalendarEvent, occurrence?: string) {
     : event.recurring
       ? 'Supprimer toute la série ?'
       : 'Supprimer cet événement ?'
-  if (!window.confirm(message)) return
+  if (!(await confirm(message, 'Supprimer', 'negative'))) return
   try {
     await deleteEvent(colocId.value, event.id, occurrence)
     panel.value = null
@@ -159,7 +174,7 @@ async function removeEvent(event: CalendarEvent, occurrence?: string) {
 }
 
 async function removeRotation(rotation: RotationWeek) {
-  if (!window.confirm('Supprimer ce tour ?')) return
+  if (!(await confirm('Supprimer ce tour ?', 'Supprimer', 'negative'))) return
   try {
     await deleteRotation(colocId.value, rotation.id)
     panel.value = null
@@ -194,24 +209,30 @@ function recurrenceLabel(event: CalendarEvent) {
 </script>
 
 <template>
-  <main class="screen planning">
-    <p class="switch"><RouterLink :to="`/colocs/${colocId}`">{{ coloc?.name ?? 'Coloc' }}</RouterLink></p>
-    <div class="toolbar spread">
-      <button type="button" aria-label="Période précédente" @click="shift(-1)">‹</button>
-      <h1>{{ heading }}</h1>
-      <button type="button" aria-label="Période suivante" @click="shift(1)">›</button>
+  <q-page class="page wide">
+    <q-btn flat no-caps color="primary" class="q-mb-sm" :label="coloc?.name ?? 'Coloc'" :to="`/colocs/${colocId}`" />
+    <div class="row items-center no-wrap q-mb-sm">
+      <q-btn flat round icon="chevron_left" aria-label="Période précédente" @click="shift(-1)" />
+      <h1 class="planning-heading">{{ heading }}</h1>
+      <q-btn flat round icon="chevron_right" aria-label="Période suivante" @click="shift(1)" />
     </div>
-    <div class="toolbar">
-      <button type="button" :class="{ selected: mode === 'month' }" @click="mode = 'month'">Mois</button>
-      <button type="button" :class="{ selected: mode === 'week' }" @click="mode = 'week'">Semaine</button>
-      <button type="button" :class="{ selected: mode === 'day' }" @click="mode = 'day'">Jour</button>
-      <button type="button" @click="cursor = todayIso()">Aujourd’hui</button>
+    <div class="row items-center q-gutter-sm q-mb-sm">
+      <q-btn-toggle
+        :model-value="mode"
+        no-caps
+        toggle-color="primary"
+        :options="modeOptions"
+        @update:model-value="setMode"
+      />
+      <q-btn outline no-caps color="primary" label="Aujourd’hui" @click="cursor = todayIso()" />
     </div>
-    <div class="toolbar">
-      <button type="button" class="primary" @click="openCreateEvent">Événement</button>
-      <button type="button" class="primary" @click="openCreateRotation">Tour</button>
+    <div class="row q-gutter-sm q-mb-md">
+      <q-btn color="primary" unelevated no-caps label="Événement" @click="openCreateEvent" />
+      <q-btn color="primary" unelevated no-caps label="Tour" @click="openCreateRotation" />
     </div>
-    <p v-if="loading" class="muted">Chargement…</p>
+    <div v-if="loading" class="row justify-center q-pa-md">
+      <q-spinner color="primary" size="32px" />
+    </div>
     <MonthGrid
       v-if="mode === 'month'"
       :month="cursor.slice(0, 7)"
@@ -222,22 +243,29 @@ function recurrenceLabel(event: CalendarEvent) {
       @open-event="openEvent"
       @open-rotation="openRotation"
     />
+    <DayAgenda
+      v-else-if="mode === 'day'"
+      :day="cursor"
+      :events="payload.events"
+      :rotations="payload.rotations"
+      @open-event="openEvent"
+      @open-rotation="openRotation"
+    />
     <TimeGrid
       v-else
       :days="visibleDays"
       :events="payload.events"
       :rotations="payload.rotations"
-      :single="mode === 'day'"
       @open-day="openDay"
       @open-event="openEvent"
       @open-rotation="openRotation"
     />
-    <ul v-if="errors.length" class="errors">
-      <li v-for="(message, index) in errors" :key="index">{{ message }}</li>
-    </ul>
+    <q-banner v-if="errors.length" class="bg-negative text-white q-mt-md" rounded>
+      <div v-for="(message, index) in errors" :key="index">{{ message }}</div>
+    </q-banner>
 
-    <div v-if="panel" class="sheet" @click.self="panel = null">
-      <div class="sheet-card" role="dialog" aria-modal="true">
+    <q-dialog class="planning-dialog" position="bottom" :model-value="panel !== null" @update:model-value="closePanel">
+      <q-card v-if="panel" class="sheet-card q-pa-md">
         <EventForm
           v-if="panel.kind === 'event'"
           :key="formKey"
@@ -258,36 +286,36 @@ function recurrenceLabel(event: CalendarEvent) {
           @saved="onSaved"
           @cancel="panel = null"
         />
-        <p v-else-if="panel.kind === 'rotation'">Chargement…</p>
+        <div v-else-if="panel.kind === 'rotation'" class="row justify-center q-pa-lg">
+          <q-spinner color="primary" size="32px" />
+        </div>
         <template v-else-if="panel.kind === 'event-detail'">
-          <h2>{{ panel.event.title }}</h2>
+          <h2 class="text-h6 q-mt-none q-mb-sm">{{ panel.event.title }}</h2>
           <p>{{ describeEvent(panel.event) }}</p>
           <p v-if="panel.event.recurring" class="muted">{{ recurrenceLabel(panel.event) }}</p>
-          <p v-if="panel.event.notes" class="lead">{{ panel.event.notes }}</p>
-          <div class="actions">
+          <p v-if="panel.event.notes" class="q-mt-md">{{ panel.event.notes }}</p>
+          <div class="column q-gutter-sm q-mt-md">
             <template v-if="panel.event.recurring">
-              <button type="button" class="primary" @click="editEvent(panel.event, 'occurrence')">Modifier ce jour-ci</button>
-              <button type="button" class="secondary" @click="editEvent(panel.event, 'series')">Modifier la série</button>
-              <button type="button" class="secondary" @click="removeEvent(panel.event, panel.event.occurrence_on)">
-                Supprimer ce jour-ci
-              </button>
-              <button type="button" class="secondary" @click="removeEvent(panel.event)">Supprimer la série</button>
+              <q-btn color="primary" unelevated no-caps label="Modifier ce jour-ci" @click="editEvent(panel.event, 'occurrence')" />
+              <q-btn outline no-caps color="primary" label="Modifier la série" @click="editEvent(panel.event, 'series')" />
+              <q-btn outline no-caps color="negative" label="Supprimer ce jour-ci" @click="removeEvent(panel.event, panel.event.occurrence_on)" />
+              <q-btn outline no-caps color="negative" label="Supprimer la série" @click="removeEvent(panel.event)" />
             </template>
             <template v-else>
-              <button type="button" class="primary" @click="editEvent(panel.event, 'series')">Modifier</button>
-              <button type="button" class="secondary" @click="removeEvent(panel.event)">Supprimer</button>
+              <q-btn color="primary" unelevated no-caps label="Modifier" @click="editEvent(panel.event, 'series')" />
+              <q-btn outline no-caps color="negative" label="Supprimer" @click="removeEvent(panel.event)" />
             </template>
           </div>
         </template>
         <template v-else>
-          <h2>{{ panel.rotation.title }}</h2>
+          <h2 class="text-h6 q-mt-none q-mb-sm">{{ panel.rotation.title }}</h2>
           <p>{{ describeRotation(panel.rotation) }}</p>
-          <div class="actions">
-            <button type="button" class="primary" @click="editRotation(panel.rotation)">Modifier le tour</button>
-            <button type="button" class="secondary" @click="removeRotation(panel.rotation)">Supprimer le tour</button>
+          <div class="column q-gutter-sm q-mt-md">
+            <q-btn color="primary" unelevated no-caps label="Modifier le tour" @click="editRotation(panel.rotation)" />
+            <q-btn outline no-caps color="negative" label="Supprimer le tour" @click="removeRotation(panel.rotation)" />
           </div>
         </template>
-      </div>
-    </div>
-  </main>
+      </q-card>
+    </q-dialog>
+  </q-page>
 </template>

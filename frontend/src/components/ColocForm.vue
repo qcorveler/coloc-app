@@ -35,10 +35,14 @@ watch(
   },
 )
 
-function onFile(event: Event) {
-  const input = event.target as HTMLInputElement
-  photo.value = input.files?.[0] ?? null
-  if (photo.value) removePhoto.value = false
+function requiredRule(value: string | null | undefined) {
+  return !!value || 'Champ requis'
+}
+
+function onPhoto(value: File | File[] | null) {
+  const file = Array.isArray(value) ? value[0] ?? null : value
+  photo.value = file
+  if (file) removePhoto.value = false
 }
 
 function onSubmit() {
@@ -53,27 +57,19 @@ function onSubmit() {
 </script>
 
 <template>
-  <form @submit.prevent="onSubmit">
-    <label>
-      Nom
-      <input v-model="name" type="text" required maxlength="80" />
-    </label>
-    <label>
-      Adresse
-      <input v-model="address" type="text" required maxlength="200" />
-    </label>
-    <label>
-      Description
-      <textarea v-model="description" rows="5" maxlength="5000" />
-    </label>
-    <label>
-      Photo
-      <input type="file" accept="image/jpeg,image/png,image/webp" @change="onFile" />
-    </label>
-    <label v-if="photoUrl && !photo" class="check">
-      <input v-model="removePhoto" type="checkbox" />
-      Retirer la photo actuelle
-    </label>
-    <button type="submit" :disabled="submitting">{{ submitLabel }}</button>
-  </form>
+  <q-form class="column q-gutter-md" @submit.prevent="onSubmit">
+    <q-input v-model="name" label="Nom" outlined maxlength="80" lazy-rules :rules="[requiredRule]" />
+    <q-input v-model="address" label="Adresse" outlined maxlength="200" lazy-rules :rules="[requiredRule]" />
+    <q-input v-model="description" type="textarea" label="Description" outlined autogrow maxlength="5000" />
+    <q-file
+      :model-value="photo"
+      label="Photo"
+      outlined
+      clearable
+      accept="image/jpeg,image/png,image/webp"
+      @update:model-value="onPhoto"
+    />
+    <q-checkbox v-if="photoUrl && !photo" v-model="removePhoto" label="Retirer la photo actuelle" />
+    <q-btn type="submit" color="primary" unelevated no-caps class="full-width" :label="submitLabel" :loading="submitting" />
+  </q-form>
 </template>

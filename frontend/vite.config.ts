@@ -1,11 +1,19 @@
+import { join } from 'node:path'
 import { defineConfig } from 'vite'
 import vue from '@vitejs/plugin-vue'
+import { quasar, transformAssetUrls } from '@quasar/vite-plugin'
 import { VitePWA } from 'vite-plugin-pwa'
 
 export default defineConfig({
   envDir: '..',
   plugins: [
-    vue(),
+    vue({
+      template: { transformAssetUrls },
+    }),
+    quasar({
+      sassVariables: join(import.meta.dirname, 'src/quasar-variables.sass'),
+      autoImportComponentCase: 'kebab',
+    }),
     VitePWA({
       registerType: 'autoUpdate',
       includeAssets: ['favicon.ico', 'apple-touch-icon.png'],

@@ -24,13 +24,13 @@ async function onSubmit(fields: ColocFields) {
 </script>
 
 <template>
-  <main class="screen">
-    <h1>Nouvelle coloc</h1>
-    <p class="lead">Un nom et une adresse suffisent. La photo peut venir plus tard.</p>
+  <q-page class="page">
+    <h1 class="text-h4 q-mt-md q-mb-sm">Nouvelle coloc</h1>
+    <p class="q-mb-lg">Un nom et une adresse suffisent. La photo peut venir plus tard.</p>
     <ColocForm submit-label="Créer la coloc" :submitting="submitting" @submit="onSubmit" />
-    <ul v-if="errors.length" class="errors">
-      <li v-for="(message, index) in errors" :key="index">{{ message }}</li>
-    </ul>
-    <p class="switch"><RouterLink to="/">Retour</RouterLink></p>
-  </main>
+    <q-banner v-if="errors.length" class="bg-negative text-white q-mt-md" rounded>
+      <div v-for="(message, index) in errors" :key="index">{{ message }}</div>
+    </q-banner>
+    <q-btn flat no-caps color="primary" class="q-mt-lg" label="Retour" to="/" />
+  </q-page>
 </template>

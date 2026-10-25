@@ -30,9 +30,12 @@ function memberName(id: number) {
   return member ? `${member.first_name} ${member.last_name}` : 'Membre'
 }
 
-function onAnchor(event: Event) {
-  const value = (event.target as HTMLInputElement).value
-  if (value) anchor.value = mondayOf(value)
+function requiredRule(value: string | null | undefined) {
+  return !!value || 'Champ requis'
+}
+
+function onAnchor(value: string | number | null) {
+  if (typeof value === 'string' && value) anchor.value = mondayOf(value)
 }
 
 function move(index: number, direction: number) {
@@ -74,39 +77,57 @@ async function submit() {
 </script>
 
 <template>
-  <form @submit.prevent="submit">
-    <h2>{{ rotation ? 'Modifier le tour' : 'Nouveau tour' }}</h2>
-    <p class="muted">Chaque personne de la liste prend une semaine, puis on recommence.</p>
-    <p v-if="rotation" class="muted">
+  <q-form class="column q-gutter-md" @submit.prevent="submit">
+    <h2 class="text-h6 q-my-none">{{ rotation ? 'Modifier le tour' : 'Nouveau tour' }}</h2>
+    <p class="muted q-mb-none">Chaque personne de la liste prend une semaine, puis on recommence.</p>
+    <p v-if="rotation" class="muted q-mb-none">
       Si l’ordre change et que la date reste la même, le cycle reprend lundi cette semaine.
     </p>
-    <label>
-      Titre
-      <input v-model="title" type="text" maxlength="80" required />
-    </label>
-    <label>
-      Premier lundi
-      <input :value="anchor" type="date" required @change="onAnchor" />
-    </label>
-    <ol class="rotation-order">
-      <li v-for="(id, index) in memberIds" :key="id">
-        <span>{{ index + 1 }}. {{ memberName(id) }}</span>
-        <span class="member-actions">
-          <button type="button" :disabled="index === 0" @click="move(index, -1)">Monter</button>
-          <button type="button" :disabled="index === memberIds.length - 1" @click="move(index, 1)">Descendre</button>
-          <button type="button" @click="remove(index)">Retirer</button>
-        </span>
-      </li>
-    </ol>
-    <div class="weekday-row">
-      <button v-for="member in available" :key="member.id" type="button" @click="add(member.id)">
-        Ajouter {{ member.first_name }}
-      </button>
+    <q-input v-model="title" label="Titre" outlined maxlength="80" lazy-rules :rules="[requiredRule]" />
+    <q-input
+      :model-value="anchor"
+      type="date"
+      label="Premier lundi"
+      outlined
+      lazy-rules
+      :rules="[requiredRule]"
+      @update:model-value="onAnchor"
+    />
+    <q-list bordered separator class="rounded-borders">
+      <q-item v-for="(id, index) in memberIds" :key="id">
+        <q-item-section>{{ index + 1 }}. {{ memberName(id) }}</q-item-section>
+        <q-item-section side>
+          <div class="row q-gutter-xs">
+            <q-btn dense flat no-caps color="primary" label="Monter" :disable="index === 0" @click="move(index, -1)" />
+            <q-btn
+              dense
+              flat
+              no-caps
+              color="primary"
+              label="Descendre"
+              :disable="index === memberIds.length - 1"
+              @click="move(index, 1)"
+            />
+            <q-btn dense flat no-caps color="negative" label="Retirer" @click="remove(index)" />
+          </div>
+        </q-item-section>
+      </q-item>
+    </q-list>
+    <div class="row q-gutter-sm">
+      <q-btn
+        v-for="member in available"
+        :key="member.id"
+        outline
+        no-caps
+        color="primary"
+        :label="`Ajouter ${member.first_name}`"
+        @click="add(member.id)"
+      />
     </div>
-    <ul v-if="errors.length" class="errors">
-      <li v-for="(message, index) in errors" :key="index">{{ message }}</li>
-    </ul>
-    <button type="submit" class="primary" :disabled="submitting">Enregistrer</button>
-    <button type="button" class="secondary" @click="emit('cancel')">Annuler</button>
-  </form>
+    <q-banner v-if="errors.length" class="bg-negative text-white" rounded>
+      <div v-for="(message, index) in errors" :key="index">{{ message }}</div>
+    </q-banner>
+    <q-btn type="submit" color="primary" unelevated no-caps class="full-width" label="Enregistrer" :loading="submitting" />
+    <q-btn outline no-caps color="primary" class="full-width" label="Annuler" @click="emit('cancel')" />
+  </q-form>
 </template>

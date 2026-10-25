@@ -28,6 +28,14 @@ function yesterday() {
   return `${date.getFullYear()}-${month}-${day}`
 }
 
+function requiredRule(value: string | null | undefined) {
+  return !!value || 'Champ requis'
+}
+
+function passwordRule(value: string | null | undefined) {
+  return (value?.length ?? 0) >= 8 || '8 caractères minimum'
+}
+
 async function onSubmit() {
   errors.value = []
   if (password.value !== passwordConfirmation.value) {
@@ -55,42 +63,49 @@ async function onSubmit() {
 </script>
 
 <template>
-  <main class="screen">
-    <h1>Créer un compte</h1>
-    <p class="lead">Un compte personnel, la coloc viendra ensuite.</p>
-    <form @submit.prevent="onSubmit">
-      <label>
-        Prénom
-        <input v-model="firstName" type="text" autocomplete="given-name" required />
-      </label>
-      <label>
-        Nom
-        <input v-model="lastName" type="text" autocomplete="family-name" required />
-      </label>
-      <label>
-        Email
-        <input v-model="email" type="email" autocomplete="email" required />
-      </label>
-      <label>
-        Date de naissance
-        <input v-model="dateOfBirth" type="date" autocomplete="bday" :max="maxBirthDate" required />
-      </label>
-      <label>
-        Mot de passe
-        <input v-model="password" type="password" autocomplete="new-password" required minlength="8" />
-      </label>
-      <label>
-        Confirmation
-        <input v-model="passwordConfirmation" type="password" autocomplete="new-password" required minlength="8" />
-      </label>
-      <ul v-if="errors.length" class="errors">
-        <li v-for="(message, index) in errors" :key="index">{{ message }}</li>
-      </ul>
-      <button type="submit" :disabled="submitting">Créer mon compte</button>
-    </form>
-    <p class="switch">
+  <q-page class="page">
+    <h1 class="text-h4 q-mt-md q-mb-sm">Créer un compte</h1>
+    <p class="q-mb-lg">Un compte personnel, la coloc viendra ensuite.</p>
+    <q-form class="column q-gutter-md" @submit.prevent="onSubmit">
+      <q-input v-model="firstName" label="Prénom" outlined autocomplete="given-name" lazy-rules :rules="[requiredRule]" />
+      <q-input v-model="lastName" label="Nom" outlined autocomplete="family-name" lazy-rules :rules="[requiredRule]" />
+      <q-input v-model="email" type="email" label="Email" outlined autocomplete="email" lazy-rules :rules="[requiredRule]" />
+      <q-input
+        v-model="dateOfBirth"
+        type="date"
+        label="Date de naissance"
+        outlined
+        autocomplete="bday"
+        :max="maxBirthDate"
+        lazy-rules
+        :rules="[requiredRule]"
+      />
+      <q-input
+        v-model="password"
+        type="password"
+        label="Mot de passe"
+        outlined
+        autocomplete="new-password"
+        lazy-rules
+        :rules="[requiredRule, passwordRule]"
+      />
+      <q-input
+        v-model="passwordConfirmation"
+        type="password"
+        label="Confirmation"
+        outlined
+        autocomplete="new-password"
+        lazy-rules
+        :rules="[requiredRule, passwordRule]"
+      />
+      <q-banner v-if="errors.length" class="bg-negative text-white" rounded>
+        <div v-for="(message, index) in errors" :key="index">{{ message }}</div>
+      </q-banner>
+      <q-btn type="submit" color="primary" unelevated no-caps class="full-width" label="Créer mon compte" :loading="submitting" />
+    </q-form>
+    <p class="q-mt-lg">
       Déjà un compte ?
-      <RouterLink :to="{ path: '/login', query: route.query }">Se connecter</RouterLink>
+      <RouterLink class="text-primary" :to="{ path: '/login', query: route.query }">Se connecter</RouterLink>
     </p>
-  </main>
+  </q-page>
 </template>

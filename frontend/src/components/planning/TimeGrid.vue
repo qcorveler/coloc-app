@@ -13,7 +13,6 @@ const props = defineProps<{
   days: string[]
   events: CalendarEvent[]
   rotations: RotationWeek[]
-  single: boolean
 }>()
 
 const emit = defineEmits<{
@@ -93,8 +92,8 @@ function blockStyle(item: { start: number; end: number; column: number; columns:
 </script>
 
 <template>
-  <div class="time-scroll">
-    <div class="time-grid" :class="{ single }" :style="{ '--days': String(days.length) }">
+  <div class="time-scroll calendar">
+    <div class="time-grid" :style="{ '--days': String(days.length) }">
       <div class="time-head">
         <div></div>
         <button v-for="day in days" :key="day" type="button" class="day-number" @click="emit('openDay', day)">

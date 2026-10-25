@@ -49,7 +49,7 @@ function openChip(chip: ReturnType<typeof chips>[number]) {
 </script>
 
 <template>
-  <div>
+  <div class="calendar">
     <div class="month-head">
       <span v-for="label in labels" :key="label">{{ label }}</span>
     </div>

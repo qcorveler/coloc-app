@@ -34,30 +34,42 @@ async function onLogout() {
 </script>
 
 <template>
-  <main class="screen">
-    <h1>Salut {{ user?.first_name }}</h1>
-    <p v-if="loading" class="lead">Chargement…</p>
+  <q-page class="page">
+    <h1 class="text-h4 q-mt-md q-mb-lg">Salut {{ user?.first_name }}</h1>
+    <div v-if="loading" class="row justify-center q-pa-lg">
+      <q-spinner color="primary" size="32px" />
+    </div>
     <template v-else>
-      <p v-if="colocs.length === 0" class="lead">Tu n'as pas encore de coloc.</p>
-      <ul v-else class="coloc-list">
-        <li v-for="coloc in colocs" :key="coloc.id">
-          <RouterLink class="coloc-card" :to="`/colocs/${coloc.id}`">
-            <img v-if="coloc.photo_url" :src="coloc.photo_url" alt="" class="thumb" />
-            <span v-else class="thumb fallback">{{ initial(coloc.name) }}</span>
-            <span>
-              <strong>{{ coloc.name }}</strong>
-              <span class="muted">{{ coloc.address }}</span>
-            </span>
-          </RouterLink>
-        </li>
-      </ul>
-      <ul v-if="errors.length" class="errors">
-        <li v-for="(message, index) in errors" :key="index">{{ message }}</li>
-      </ul>
-      <RouterLink class="button" to="/colocs/nouvelle">Créer une coloc</RouterLink>
+      <p v-if="colocs.length === 0" class="q-mb-lg">Tu n'as pas encore de coloc.</p>
+      <q-list v-else bordered separator class="rounded-borders q-mb-lg">
+        <q-item v-for="coloc in colocs" :key="coloc.id" clickable :to="`/colocs/${coloc.id}`">
+          <q-item-section avatar>
+            <q-avatar v-if="coloc.photo_url" size="64px" rounded>
+              <img :src="coloc.photo_url" alt="" />
+            </q-avatar>
+            <q-avatar v-else size="64px" rounded color="primary" text-color="white">
+              {{ initial(coloc.name) }}
+            </q-avatar>
+          </q-item-section>
+          <q-item-section>
+            <q-item-label>{{ coloc.name }}</q-item-label>
+            <q-item-label caption>{{ coloc.address }}</q-item-label>
+          </q-item-section>
+        </q-item>
+      </q-list>
+      <q-banner v-if="errors.length" class="bg-negative text-white q-mb-md" rounded>
+        <div v-for="(message, index) in errors" :key="index">{{ message }}</div>
+      </q-banner>
+      <q-btn color="primary" unelevated no-caps class="full-width" label="Créer une coloc" to="/colocs/nouvelle" />
     </template>
-    <button type="button" class="secondary" :disabled="submitting" @click="onLogout">
-      Se déconnecter
-    </button>
-  </main>
+    <q-btn
+      outline
+      no-caps
+      color="primary"
+      class="full-width q-mt-md"
+      label="Se déconnecter"
+      :loading="submitting"
+      @click="onLogout"
+    />
+  </q-page>
 </template>

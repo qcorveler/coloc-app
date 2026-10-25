@@ -37,23 +37,24 @@ async function onSubmit(fields: ColocFields) {
 </script>
 
 <template>
-  <main class="screen">
-    <h1>Modifier la coloc</h1>
-    <p v-if="loading" class="lead">Chargement…</p>
-    <template v-else-if="coloc">
-      <ColocForm
-        :name="coloc.name"
-        :address="coloc.address"
-        :description="coloc.description"
-        :photo-url="coloc.photo_url"
-        submit-label="Enregistrer"
-        :submitting="submitting"
-        @submit="onSubmit"
-      />
-    </template>
-    <ul v-if="errors.length" class="errors">
-      <li v-for="(message, index) in errors" :key="index">{{ message }}</li>
-    </ul>
-    <p class="switch"><RouterLink :to="`/colocs/${route.params.id}`">Retour</RouterLink></p>
-  </main>
+  <q-page class="page">
+    <h1 class="text-h4 q-mt-md q-mb-sm">Modifier la coloc</h1>
+    <div v-if="loading" class="row justify-center q-pa-lg">
+      <q-spinner color="primary" size="32px" />
+    </div>
+    <ColocForm
+      v-else-if="coloc"
+      :name="coloc.name"
+      :address="coloc.address"
+      :description="coloc.description"
+      :photo-url="coloc.photo_url"
+      submit-label="Enregistrer"
+      :submitting="submitting"
+      @submit="onSubmit"
+    />
+    <q-banner v-if="errors.length" class="bg-negative text-white q-mt-md" rounded>
+      <div v-for="(message, index) in errors" :key="index">{{ message }}</div>
+    </q-banner>
+    <q-btn flat no-caps color="primary" class="q-mt-lg" label="Retour" :to="`/colocs/${route.params.id}`" />
+  </q-page>
 </template>

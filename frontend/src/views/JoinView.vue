@@ -36,18 +36,20 @@ async function join() {
 </script>
 
 <template>
-  <main class="screen">
-    <p v-if="loading" class="lead">Chargement…</p>
+  <q-page class="page">
+    <div v-if="loading" class="row justify-center q-pa-lg">
+      <q-spinner color="primary" size="32px" />
+    </div>
     <template v-else-if="coloc">
-      <img v-if="coloc.photo_url" :src="coloc.photo_url" :alt="coloc.name" class="banner" />
-      <div v-else class="banner fallback">{{ initial(coloc.name) }}</div>
-      <h1>{{ coloc.name }}</h1>
+      <q-img v-if="coloc.photo_url" :src="coloc.photo_url" :alt="coloc.name" :ratio="16 / 9" class="rounded-borders q-mt-sm" />
+      <div v-else class="banner-fallback">{{ initial(coloc.name) }}</div>
+      <h1 class="text-h4 q-mt-md q-mb-sm">{{ coloc.name }}</h1>
       <p class="muted">{{ coloc.address }}</p>
-      <p class="lead">{{ coloc.member_count }} / 30 personnes</p>
-      <button type="button" :disabled="submitting" @click="join">Rejoindre</button>
+      <p class="q-my-md">{{ coloc.member_count }} / 30 personnes</p>
+      <q-btn color="primary" unelevated no-caps class="full-width" label="Rejoindre" :loading="submitting" @click="join" />
     </template>
-    <ul v-if="errors.length" class="errors">
-      <li v-for="(message, index) in errors" :key="index">{{ message }}</li>
-    </ul>
-  </main>
+    <q-banner v-if="errors.length" class="bg-negative text-white q-mt-md" rounded>
+      <div v-for="(message, index) in errors" :key="index">{{ message }}</div>
+    </q-banner>
+  </q-page>
 </template>
