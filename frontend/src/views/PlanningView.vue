@@ -210,7 +210,6 @@ function recurrenceLabel(event: CalendarEvent) {
 
 <template>
   <q-page class="page wide">
-    <q-btn flat no-caps color="primary" class="q-mb-sm" :label="coloc?.name ?? 'Coloc'" :to="`/colocs/${colocId}`" />
     <div class="row items-center no-wrap q-mb-sm">
       <q-btn flat round icon="chevron_left" aria-label="Période précédente" @click="shift(-1)" />
       <h1 class="planning-heading">{{ heading }}</h1>

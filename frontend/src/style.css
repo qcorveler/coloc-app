@@ -28,12 +28,50 @@ body {
   display: grid;
   place-items: center;
   aspect-ratio: 16 / 9;
-  margin-top: 12px;
   border-radius: 12px;
-  background: rgba(var(--q-primary), 0.12);
-  color: rgb(var(--q-primary));
+  background: color-mix(in srgb, var(--q-primary) 16%, #fff);
+  color: var(--q-primary);
   font-size: 48px;
   font-weight: 600;
+}
+
+body.body--dark .banner-fallback {
+  background: color-mix(in srgb, var(--q-primary) 32%, #16171d);
+  color: #fff;
+}
+
+.coloc-title {
+  text-align: center;
+  font-size: 1rem;
+  font-weight: 600;
+}
+
+.toolbar-spacer {
+  width: 42px;
+  flex: 0 0 42px;
+}
+
+.coloc-footer {
+  padding-bottom: env(safe-area-inset-bottom);
+}
+
+.drawer-panel {
+  height: 100%;
+  min-height: 0;
+}
+
+.drawer-list {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+}
+
+.settings-heading {
+  flex: 1;
+  margin: 0;
+  font-size: 1.25rem;
+  font-weight: 600;
+  text-align: center;
 }
 
 .planning-heading {

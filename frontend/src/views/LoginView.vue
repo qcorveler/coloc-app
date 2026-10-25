@@ -3,11 +3,12 @@ import { ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useAuth } from '../composables/useAuth'
 import { ApiError } from '../lib/api'
+import { entryPath } from '../lib/lastColoc'
 import { internalPath } from '../lib/redirect'
 
 const route = useRoute()
 const router = useRouter()
-const { login } = useAuth()
+const { user, login } = useAuth()
 
 const email = ref('')
 const password = ref('')
@@ -27,7 +28,16 @@ async function onSubmit() {
   submitting.value = true
   try {
     await login(email.value, password.value)
-    await router.push(internalPath(route.query.redirect) ?? '/')
+    const redirect = internalPath(route.query.redirect)
+    if (redirect) {
+      await router.push(redirect)
+      return
+    }
+    try {
+      await router.push(user.value ? await entryPath(user.value.id) : '/')
+    } catch {
+      await router.push('/')
+    }
   } catch (error) {
     errors.value = error instanceof ApiError ? error.errors : ['Une erreur est survenue']
   } finally {

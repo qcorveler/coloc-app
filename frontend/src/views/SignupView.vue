@@ -3,11 +3,12 @@ import { ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useAuth } from '../composables/useAuth'
 import { ApiError } from '../lib/api'
+import { entryPath } from '../lib/lastColoc'
 import { internalPath } from '../lib/redirect'
 
 const route = useRoute()
 const router = useRouter()
-const { signup } = useAuth()
+const { user, signup } = useAuth()
 
 const firstName = ref('')
 const lastName = ref('')
@@ -53,7 +54,16 @@ async function onSubmit() {
       last_name: lastName.value,
       date_of_birth: dateOfBirth.value,
     })
-    await router.push(internalPath(route.query.redirect) ?? '/')
+    const redirect = internalPath(route.query.redirect)
+    if (redirect) {
+      await router.push(redirect)
+      return
+    }
+    try {
+      await router.push(user.value ? await entryPath(user.value.id) : '/')
+    } catch {
+      await router.push('/')
+    }
   } catch (error) {
     errors.value = error instanceof ApiError ? error.errors : ['Une erreur est survenue']
   } finally {
