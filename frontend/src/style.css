@@ -273,18 +273,3 @@ body.body--dark .calendar {
     transparent 48px
   );
 }
-
-/* Suppression stricte de tous les éléments Netlify injectés */
-netlify-drawer,
-#netlify-drawer,
-[data-netlify-drawer],
-div[class*="netlify"],
-iframe[src*="netlify"] {
-  display: none !important;
-  opacity: 0 !important;
-  visibility: hidden !important;
-  pointer-events: none !important;
-  position: absolute !important;
-  top: -9999px !important;
-  left: -9999px !important;
-}
