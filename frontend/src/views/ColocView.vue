@@ -41,9 +41,18 @@ function memberCaption(count: number) {
       <p class="q-my-md">{{ coloc.description || 'Pas encore de description.' }}</p>
       <p class="muted q-mb-sm">{{ memberCaption(coloc.members.length) }}</p>
       <q-list>
-        <q-item v-for="member in coloc.members" :key="member.id" class="q-px-none">
+        <q-item
+          v-for="member in coloc.members"
+          :key="member.id"
+          clickable
+          class="q-px-none"
+          :to="{ name: 'coloc-profile', params: { id: route.params.id, userId: member.id } }"
+        >
           <q-item-section avatar>
-            <q-avatar color="primary" text-color="white" size="40px">
+            <q-avatar v-if="member.avatar_url" size="40px">
+              <img :src="member.avatar_url" alt="" />
+            </q-avatar>
+            <q-avatar v-else color="primary" text-color="white" size="40px">
               {{ initial(member.first_name) }}
             </q-avatar>
           </q-item-section>

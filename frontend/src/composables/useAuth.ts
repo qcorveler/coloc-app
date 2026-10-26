@@ -53,5 +53,10 @@ export function useAuth() {
     user.value = null
   }
 
-  return { user, loading, ensureLoaded, signup, login, logout }
+  function updateUser(patch: Partial<User>) {
+    if (!user.value) return
+    user.value = { ...user.value, ...patch }
+  }
+
+  return { user, loading, ensureLoaded, signup, login, logout, updateUser }
 }

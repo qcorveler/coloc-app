@@ -4,6 +4,7 @@ export type User = {
   first_name: string
   last_name: string
   date_of_birth: string
+  avatar_url: string | null
 }
 
 export class ApiError extends Error {

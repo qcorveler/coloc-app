@@ -3,7 +3,7 @@ module Api
     skip_before_action :require_authentication, only: :create
 
     def show
-      render json: { user: Current.user.as_json }
+      render json: { user: Current.user.as_json(host: request.base_url) }
     end
 
     def create
@@ -11,7 +11,7 @@ module Api
 
       if user&.authenticate(params[:password])
         start_new_session_for(user)
-        render json: { user: user.as_json }
+        render json: { user: user.as_json(host: request.base_url) }
       else
         render json: { errors: [ "Email ou mot de passe incorrect" ] }, status: :unauthorized
       end

@@ -64,6 +64,16 @@ export const router = createRouter({
           name: 'coloc-planning',
           component: () => import('../views/PlanningView.vue'),
         },
+        {
+          path: 'profil/modifier',
+          name: 'coloc-profile-edit',
+          component: () => import('../views/ProfileEditView.vue'),
+        },
+        {
+          path: 'profil/:userId',
+          name: 'coloc-profile',
+          component: () => import('../views/ProfileView.vue'),
+        },
       ],
     },
   ],

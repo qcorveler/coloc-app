@@ -27,7 +27,7 @@ class Coloc < ApplicationRecord
         return nil
       end
 
-      memberships.create!(user: user)
+      memberships.create!(user: user, arrived_on: Date.current)
     end
   end
 
@@ -45,8 +45,13 @@ class Coloc < ApplicationRecord
     summary(host: host).merge(
       description:,
       invite_token:,
-      members: users.order(:first_name, :last_name).map { |user|
-        { id: user.id, first_name: user.first_name, last_name: user.last_name }
+      members: users.with_attached_avatar.order(:first_name, :last_name).map { |user|
+        {
+          id: user.id,
+          first_name: user.first_name,
+          last_name: user.last_name,
+          avatar_url: user.avatar_url(host)
+        }
       }
     )
   end

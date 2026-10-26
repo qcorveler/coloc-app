@@ -14,6 +14,7 @@ Rails.application.routes.draw do
       resource :calendar, only: [ :show ], module: :colocs
       resources :events, only: [ :create, :update, :destroy ], module: :colocs
       resources :rotations, only: [ :create, :update, :destroy ], module: :colocs
+      resources :profiles, only: [ :show, :update ], module: :colocs
     end
     get "invitations/:token", to: "invitations#show", as: :invitation
     post "invitations/:token", to: "invitations#create"

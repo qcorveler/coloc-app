@@ -19,6 +19,11 @@ const loggingOut = ref(false)
 const colocId = computed(() => String(route.params.id))
 const current = computed(() => colocs.value.find((coloc) => String(coloc.id) === colocId.value) ?? null)
 const isHome = computed(() => route.name === 'coloc-home')
+const isOwnProfile = computed(() => (
+  route.name === 'coloc-profile' &&
+  user.value != null &&
+  String(route.params.userId) === String(user.value.id)
+))
 const barClass = computed(() => ($q.dark.isActive ? 'bg-dark text-white' : 'bg-white text-dark'))
 
 watch(colocId, (id) => {
@@ -73,14 +78,21 @@ async function onLogout() {
           aria-label="Paramètres"
           :to="`/colocs/${colocId}/modifier`"
         />
+        <q-btn
+          v-else-if="isOwnProfile"
+          flat
+          round
+          icon="settings"
+          aria-label="Paramètres"
+          :to="{ name: 'coloc-profile-edit', params: { id: colocId } }"
+        />
         <span v-else class="toolbar-spacer" aria-hidden="true" />
       </q-toolbar>
     </q-header>
 
     <q-drawer v-model="drawer" overlay side="left" bordered :width="300">
       <div class="drawer-panel column">
-        <div class="q-px-md q-pt-lg q-pb-sm text-h6">{{ user?.first_name }}</div>
-        <q-list class="drawer-list">
+        <q-list class="drawer-list q-pt-sm">
           <q-item
             v-for="coloc in colocs"
             :key="coloc.id"
@@ -113,6 +125,25 @@ async function onLogout() {
               <q-icon name="add" />
             </q-item-section>
             <q-item-section>Créer une coloc</q-item-section>
+          </q-item>
+          <q-item
+            v-if="user"
+            clickable
+            :to="{ name: 'coloc-profile', params: { id: colocId, userId: user.id } }"
+            @click="drawer = false"
+          >
+            <q-item-section avatar>
+              <q-avatar v-if="user.avatar_url" size="40px">
+                <img :src="user.avatar_url" alt="" />
+              </q-avatar>
+              <q-avatar v-else size="40px" color="primary" text-color="white">
+                {{ initial(user.first_name) }}
+              </q-avatar>
+            </q-item-section>
+            <q-item-section>
+              <q-item-label>{{ user.first_name }} {{ user.last_name }}</q-item-label>
+              <q-item-label caption>Profil</q-item-label>
+            </q-item-section>
           </q-item>
           <q-item clickable :disable="loggingOut" @click="onLogout">
             <q-item-section avatar>
