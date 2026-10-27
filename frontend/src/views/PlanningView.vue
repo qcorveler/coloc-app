@@ -341,7 +341,7 @@ function recurrenceLabel(event: CalendarEvent) {
       <q-card v-if="panel" class="sheet-card q-pa-md">
         <EventForm
           v-if="panel.kind === 'event'"
-          :key="formKey"
+          :key="`event-form-${formKey}`"
           :coloc-id="colocId"
           :mode="panel.mode"
           :event="panel.event"
@@ -351,7 +351,7 @@ function recurrenceLabel(event: CalendarEvent) {
         />
         <RotationForm
           v-else-if="panel.kind === 'rotation' && coloc"
-          :key="formKey"
+          :key="`rotation-form-${formKey}`"
           :coloc-id="colocId"
           :members="coloc.members"
           :rotation="panel.rotation"
@@ -359,7 +359,7 @@ function recurrenceLabel(event: CalendarEvent) {
           @saved="onSaved"
           @cancel="panel = null"
         />
-        <div v-else-if="panel.kind === 'rotation'" class="row justify-center q-pa-lg">
+        <div v-else-if="panel.kind === 'rotation'" key="rotation-loading" class="row justify-center q-pa-lg">
           <q-spinner color="primary" size="32px" />
         </div>
         <template v-else-if="panel.kind === 'event-detail'">
