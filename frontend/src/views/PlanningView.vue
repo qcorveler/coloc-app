@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, ref, watch } from 'vue'
+import { computed, onUnmounted, ref, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import DayAgenda from '../components/planning/DayAgenda.vue'
 import EventForm from '../components/planning/EventForm.vue'
@@ -52,6 +52,9 @@ type Panel =
   | { kind: 'rotation-detail'; rotation: RotationWeek }
 
 const panel = ref<Panel | null>(null)
+const slideClass = ref('')
+const addMenu = ref<{ hide: () => void } | null>(null)
+let swipeOrigin: { x: number; y: number } | null = null
 
 const range = computed(() => {
   if (mode.value === 'month') {
@@ -121,7 +124,50 @@ function shift(direction: number) {
   if (mode.value === 'month') cursor.value = addMonths(cursor.value, direction)
   else if (mode.value === 'week') cursor.value = addDays(cursor.value, direction * 7)
   else cursor.value = addDays(cursor.value, direction)
+  slideClass.value = ''
+  requestAnimationFrame(() => {
+    slideClass.value = direction > 0 ? 'slide-next' : 'slide-prev'
+  })
 }
+
+function onPointerDown(event: PointerEvent) {
+  if (event.button !== 0) return
+  cancelPointer()
+  swipeOrigin = { x: event.clientX, y: event.clientY }
+  window.addEventListener('pointerup', finishPointer)
+  window.addEventListener('pointercancel', cancelPointer)
+}
+
+function cancelPointer() {
+  swipeOrigin = null
+  window.removeEventListener('pointerup', finishPointer)
+  window.removeEventListener('pointercancel', cancelPointer)
+}
+
+function finishPointer(event: PointerEvent) {
+  window.removeEventListener('pointerup', finishPointer)
+  window.removeEventListener('pointercancel', cancelPointer)
+  if (!swipeOrigin) return
+  const dx = event.clientX - swipeOrigin.x
+  const dy = event.clientY - swipeOrigin.y
+  swipeOrigin = null
+  if (Math.abs(dx) < 50 || Math.abs(dx) < Math.abs(dy) * 1.5) return
+  shift(dx < 0 ? 1 : -1)
+  const stopClick = (click: Event) => {
+    click.preventDefault()
+    click.stopPropagation()
+    window.removeEventListener('click', stopClick, true)
+  }
+  window.addEventListener('click', stopClick, true)
+}
+
+function createFromMenu(kind: 'event' | 'rotation') {
+  addMenu.value?.hide()
+  if (kind === 'event') openCreateEvent()
+  else openCreateRotation()
+}
+
+onUnmounted(cancelPointer)
 
 function openDay(day: string) {
   cursor.value = day
@@ -197,7 +243,18 @@ function describeEvent(event: CalendarEvent) {
 }
 
 function describeRotation(rotation: RotationWeek) {
-  return `${formatDay(rotation.starts_on)} – ${formatDay(rotation.ends_on)} · ${rotation.user.first_name}`
+  const slot = rotation.starts_on === rotation.ends_on
+    ? formatDay(rotation.starts_on)
+    : `${formatDay(rotation.starts_on)} – ${formatDay(rotation.ends_on)}`
+  return `${slot} · ${rotation.user.first_name}`
+}
+
+function rotationRule(rotation: RotationWeek) {
+  const days = rotation.turn_days > 1 ? 'jours' : 'jour'
+  const pause = rotation.offset_days === 0
+    ? 'Les passages s’enchaînent.'
+    : `Pause de ${rotation.offset_days} jour${rotation.offset_days > 1 ? 's' : ''} entre deux personnes.`
+  return `À partir du ${formatDay(rotation.rule_starts_on)}. Chaque passage dure ${rotation.turn_days} ${days}. ${pause}`
 }
 
 function recurrenceLabel(event: CalendarEvent) {
@@ -212,7 +269,9 @@ function recurrenceLabel(event: CalendarEvent) {
   <q-page class="page wide">
     <div class="row items-center no-wrap q-mb-sm">
       <q-btn flat round icon="chevron_left" aria-label="Période précédente" @click="shift(-1)" />
-      <h1 class="planning-heading">{{ heading }}</h1>
+      <h1 class="planning-heading">
+        <span :class="{ 'today-pill': mode === 'day' && cursor === todayIso() }">{{ heading }}</span>
+      </h1>
       <q-btn flat round icon="chevron_right" aria-label="Période suivante" @click="shift(1)" />
     </div>
     <div class="row items-center q-gutter-sm q-mb-sm">
@@ -224,41 +283,56 @@ function recurrenceLabel(event: CalendarEvent) {
         @update:model-value="setMode"
       />
       <q-btn outline no-caps color="primary" label="Aujourd’hui" @click="cursor = todayIso()" />
+      <q-space />
+      <q-btn round unelevated color="primary" icon="add" aria-label="Ajouter">
+        <q-menu ref="addMenu" anchor="bottom right" self="top right">
+          <q-list class="add-menu">
+            <q-item clickable @click="createFromMenu('event')">
+              <q-item-section>Événement</q-item-section>
+            </q-item>
+            <q-item clickable @click="createFromMenu('rotation')">
+              <q-item-section>Tour</q-item-section>
+            </q-item>
+          </q-list>
+        </q-menu>
+      </q-btn>
     </div>
-    <div class="row q-gutter-sm q-mb-md">
-      <q-btn color="primary" unelevated no-caps label="Événement" @click="openCreateEvent" />
-      <q-btn color="primary" unelevated no-caps label="Tour" @click="openCreateRotation" />
+    <div
+      class="calendar-stage"
+      :class="slideClass"
+      @pointerdown="onPointerDown"
+    >
+      <div v-if="loading" class="row justify-center q-pa-md">
+        <q-spinner color="primary" size="32px" />
+      </div>
+      <MonthGrid
+        v-else-if="mode === 'month'"
+        :month="cursor.slice(0, 7)"
+        :days="visibleDays"
+        :events="payload.events"
+        :rotations="payload.rotations"
+        @open-day="openDay"
+        @open-event="openEvent"
+        @open-rotation="openRotation"
+      />
+      <DayAgenda
+        v-else-if="mode === 'day'"
+        :day="cursor"
+        :events="payload.events"
+        :rotations="payload.rotations"
+        @open-event="openEvent"
+        @open-rotation="openRotation"
+      />
+      <TimeGrid
+        v-else
+        :days="visibleDays"
+        :events="payload.events"
+        :rotations="payload.rotations"
+        @open-day="openDay"
+        @open-event="openEvent"
+        @open-rotation="openRotation"
+      />
     </div>
-    <div v-if="loading" class="row justify-center q-pa-md">
-      <q-spinner color="primary" size="32px" />
-    </div>
-    <MonthGrid
-      v-if="mode === 'month'"
-      :month="cursor.slice(0, 7)"
-      :days="visibleDays"
-      :events="payload.events"
-      :rotations="payload.rotations"
-      @open-day="openDay"
-      @open-event="openEvent"
-      @open-rotation="openRotation"
-    />
-    <DayAgenda
-      v-else-if="mode === 'day'"
-      :day="cursor"
-      :events="payload.events"
-      :rotations="payload.rotations"
-      @open-event="openEvent"
-      @open-rotation="openRotation"
-    />
-    <TimeGrid
-      v-else
-      :days="visibleDays"
-      :events="payload.events"
-      :rotations="payload.rotations"
-      @open-day="openDay"
-      @open-event="openEvent"
-      @open-rotation="openRotation"
-    />
     <q-banner v-if="errors.length" class="bg-negative text-white q-mt-md" rounded>
       <div v-for="(message, index) in errors" :key="index">{{ message }}</div>
     </q-banner>
@@ -309,6 +383,7 @@ function recurrenceLabel(event: CalendarEvent) {
         <template v-else>
           <h2 class="text-h6 q-mt-none q-mb-sm">{{ panel.rotation.title }}</h2>
           <p>{{ describeRotation(panel.rotation) }}</p>
+          <p class="muted">{{ rotationRule(panel.rotation) }}</p>
           <div class="column q-gutter-sm q-mt-md">
             <q-btn color="primary" unelevated no-caps label="Modifier le tour" @click="editRotation(panel.rotation)" />
             <q-btn outline no-caps color="negative" label="Supprimer le tour" @click="removeRotation(panel.rotation)" />

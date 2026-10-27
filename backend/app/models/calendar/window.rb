@@ -67,7 +67,7 @@ module Calendar
       end
 
       def rotation_rows
-        @coloc.rotations.includes(rotation_members: :user).flat_map { |rotation| rotation.weeks_between(@from, @to) }
+        @coloc.rotations.includes(rotation_members: :user).flat_map { |rotation| rotation.slots_between(@from, @to) }
       end
 
       def overlaps?(starts_at, ends_at)

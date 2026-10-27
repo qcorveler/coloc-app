@@ -72,7 +72,7 @@ class CalendarTest < ActionDispatch::IntegrationTest
     assert_empty trash_dates
   end
 
-  test "cycles a rotation and reanchors when someone is removed" do
+  test "cycles a rotation with an offset and without an end date" do
     travel_to Time.zone.local(2026, 10, 23, 12, 0, 0) do
       bea = create_user("bea@coloc.test", first_name: "Bea")
       noam = create_user("noam@coloc.test", first_name: "Noam")
@@ -81,21 +81,39 @@ class CalendarTest < ActionDispatch::IntegrationTest
 
       post api_coloc_rotations_path(@coloc), params: {
         title: "Ménage",
-        anchor_on: "2026-10-19",
+        starts_on: "2026-10-20",
+        turn_days: 7,
+        offset_days: 1,
         member_ids: [ @owner.id, bea.id, noam.id ]
       }, as: :json
       assert_response :created
-      rotation_id = JSON.parse(response.body).dig("rotation", "id")
-      assert_equal [ "Ada", "Bea", "Noam", "Ada" ], duty_names
+      rotation = JSON.parse(response.body).fetch("rotation")
+      assert_equal "2026-10-20", rotation.fetch("starts_on")
+      assert_nil rotation.fetch("ends_on")
+      assert_equal 1, rotation.fetch("offset_days")
+      assert_equal [
+        [ "2026-10-20", "2026-10-26", "Ada" ],
+        [ "2026-10-28", "2026-11-03", "Bea" ],
+        [ "2026-11-05", "2026-11-11", "Noam" ],
+        [ "2026-11-13", "2026-11-19", "Ada" ]
+      ], duty_rows
 
-      patch api_coloc_rotation_path(@coloc, rotation_id), params: {
+      patch api_coloc_rotation_path(@coloc, rotation.fetch("id")), params: {
         title: "Ménage",
-        anchor_on: "2026-10-19",
+        starts_on: "2026-10-20",
+        turn_days: 7,
+        offset_days: 1,
         member_ids: [ @owner.id, noam.id ]
       }, as: :json
       assert_response :success
-      assert_equal "2026-10-19", JSON.parse(response.body).dig("rotation", "anchor_on")
-      assert_equal [ "Ada", "Noam", "Ada", "Noam" ], duty_names
+      assert_equal "2026-10-20", JSON.parse(response.body).dig("rotation", "starts_on")
+      assert_nil JSON.parse(response.body).dig("rotation", "ends_on")
+      assert_equal [
+        [ "2026-10-20", "2026-10-26", "Ada" ],
+        [ "2026-10-28", "2026-11-03", "Noam" ],
+        [ "2026-11-05", "2026-11-11", "Ada" ],
+        [ "2026-11-13", "2026-11-19", "Noam" ]
+      ], duty_rows
     end
   end
 
@@ -105,7 +123,9 @@ class CalendarTest < ActionDispatch::IntegrationTest
       @coloc.add_member(bea)
       post api_coloc_rotations_path(@coloc), params: {
         title: "Ménage",
-        anchor_on: "2026-10-05",
+        starts_on: "2026-10-05",
+        turn_days: 7,
+        offset_days: 0,
         member_ids: [ @owner.id, bea.id ]
       }, as: :json
       assert_response :created
@@ -115,9 +135,9 @@ class CalendarTest < ActionDispatch::IntegrationTest
       assert_response :no_content
 
       sign_in(@owner)
-      duties = duty_names
-      assert_equal [ "Ada" ], duties.uniq
-      assert_equal "2026-10-19", JSON.parse(response.body).fetch("rotations").first.fetch("anchor_on")
+      duties = duty_rows
+      assert_equal [ "Ada" ], duties.map(&:last).uniq
+      assert_equal "2026-10-05", JSON.parse(response.body).fetch("rotations").first.fetch("rule_starts_on")
     end
   end
 
@@ -137,7 +157,9 @@ class CalendarTest < ActionDispatch::IntegrationTest
 
     post api_coloc_rotations_path(@coloc), params: {
       title: "Intrusion",
-      anchor_on: "2026-10-19",
+      starts_on: "2026-10-20",
+      turn_days: 7,
+      offset_days: 0,
       member_ids: [ @owner.id ]
     }, as: :json
     assert_response :forbidden
@@ -189,9 +211,11 @@ class CalendarTest < ActionDispatch::IntegrationTest
       calendar_events.select { |event| event.fetch("title").start_with?("Poubelles") }.map { |event| event.fetch("occurrence_on") }
     end
 
-    def duty_names
+    def duty_rows
       get api_coloc_calendar_path(@coloc, from: "2026-10-19", to: "2026-11-15"), as: :json
       assert_response :success
-      JSON.parse(response.body).fetch("rotations").map { |week| week.dig("user", "first_name") }
+      JSON.parse(response.body).fetch("rotations").map do |slot|
+        [ slot.fetch("starts_on"), slot.fetch("ends_on"), slot.dig("user", "first_name") ]
+      end
     end
 end

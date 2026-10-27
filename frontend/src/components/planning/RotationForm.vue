@@ -3,7 +3,6 @@ import { computed, ref } from 'vue'
 import { ApiError } from '../../lib/api'
 import { saveRotation, type RotationWeek } from '../../lib/calendar'
 import type { ColocMember } from '../../lib/colocs'
-import { mondayOf } from '../../lib/dates'
 
 const props = defineProps<{
   colocId: string
@@ -18,7 +17,9 @@ const emit = defineEmits<{
 }>()
 
 const title = ref(props.rotation?.title ?? 'Ménage')
-const anchor = ref(props.rotation?.anchor_on ?? mondayOf(props.initialDate))
+const startsOn = ref(props.rotation?.rule_starts_on ?? props.initialDate)
+const turnDays = ref(props.rotation?.turn_days ?? 7)
+const offsetDays = ref(props.rotation?.offset_days ?? 0)
 const memberIds = ref<number[]>(props.rotation?.member_ids ?? props.members.map((member) => member.id))
 const errors = ref<string[]>([])
 const submitting = ref(false)
@@ -30,12 +31,24 @@ function memberName(id: number) {
   return member ? `${member.first_name} ${member.last_name}` : 'Membre'
 }
 
-function requiredRule(value: string | null | undefined) {
-  return !!value || 'Champ requis'
+function optionsFor(currentId: number) {
+  return props.members
+    .filter((member) => member.id === currentId || !memberIds.value.includes(member.id))
+    .map((member) => ({ label: memberName(member.id), value: member.id }))
 }
 
-function onAnchor(value: string | number | null) {
-  if (typeof value === 'string' && value) anchor.value = mondayOf(value)
+function requiredRule(value: string | number | null | undefined) {
+  return (value !== null && value !== undefined && value !== '') || 'Champ requis'
+}
+
+function turnRule(value: number | string | null | undefined) {
+  const count = Number(value)
+  return Number.isInteger(count) && count >= 1 && count <= 366 || 'Entre 1 et 366 jours'
+}
+
+function offsetRule(value: number | string | null | undefined) {
+  const count = Number(value)
+  return Number.isInteger(count) && count >= 0 && count <= 366 || 'Entre 0 et 366 jours'
 }
 
 function move(index: number, direction: number) {
@@ -55,9 +68,23 @@ function add(id: number) {
   memberIds.value = [...memberIds.value, id]
 }
 
+function replace(index: number, value: number | string | null) {
+  const id = Number(value)
+  if (!Number.isInteger(id) || id <= 0) return
+  const copy = [...memberIds.value]
+  copy[index] = id
+  memberIds.value = copy
+}
+
 async function submit() {
+  const turn = Number(turnDays.value)
+  const offset = Number(offsetDays.value)
   if (memberIds.value.length === 0) {
     errors.value = ['Le tour doit désigner au moins une personne']
+    return
+  }
+  if (!Number.isInteger(turn) || turn < 1 || turn > 366 || !Number.isInteger(offset) || offset < 0 || offset > 366) {
+    errors.value = ['La durée ou la pause est invalide']
     return
   }
   submitting.value = true
@@ -65,7 +92,10 @@ async function submit() {
   try {
     await saveRotation(props.colocId, props.rotation?.id ?? null, {
       title: title.value,
-      anchor_on: anchor.value,
+      starts_on: startsOn.value,
+      ends_on: null,
+      turn_days: turn,
+      offset_days: offset,
       member_ids: memberIds.value,
     })
     emit('saved')
@@ -79,40 +109,57 @@ async function submit() {
 <template>
   <q-form class="column q-gutter-md" @submit.prevent="submit">
     <h2 class="text-h6 q-my-none">{{ rotation ? 'Modifier le tour' : 'Nouveau tour' }}</h2>
-    <p class="muted q-mb-none">Chaque personne de la liste prend une semaine, puis on recommence.</p>
-    <p v-if="rotation" class="muted q-mb-none">
-      Si l’ordre change et que la date reste la même, le cycle reprend lundi cette semaine.
+    <p class="muted q-mb-none">
+      Les personnes se relaient dans l’ordre, sans date de fin. Chacune garde le tour pendant la durée choisie, puis la pause, puis la suivante.
     </p>
     <q-input v-model="title" label="Titre" outlined maxlength="80" lazy-rules :rules="[requiredRule]" />
+    <q-input v-model="startsOn" type="date" label="Date de début" outlined lazy-rules :rules="[requiredRule]" />
     <q-input
-      :model-value="anchor"
-      type="date"
-      label="Premier lundi"
+      v-model.number="turnDays"
+      type="number"
+      label="Durée d’un passage (jours)"
       outlined
+      min="1"
+      max="366"
       lazy-rules
-      :rules="[requiredRule]"
-      @update:model-value="onAnchor"
+      :rules="[turnRule]"
     />
-    <q-list bordered separator class="rounded-borders">
-      <q-item v-for="(id, index) in memberIds" :key="id">
-        <q-item-section>{{ index + 1 }}. {{ memberName(id) }}</q-item-section>
-        <q-item-section side>
-          <div class="row q-gutter-xs">
-            <q-btn dense flat no-caps color="primary" label="Monter" :disable="index === 0" @click="move(index, -1)" />
-            <q-btn
-              dense
-              flat
-              no-caps
-              color="primary"
-              label="Descendre"
-              :disable="index === memberIds.length - 1"
-              @click="move(index, 1)"
-            />
-            <q-btn dense flat no-caps color="negative" label="Retirer" @click="remove(index)" />
-          </div>
-        </q-item-section>
-      </q-item>
-    </q-list>
+    <q-input
+      v-model.number="offsetDays"
+      type="number"
+      label="Pause entre deux personnes (jours)"
+      outlined
+      hint="Jours vides insérés après chaque passage. 0 enchaîne tout de suite."
+      min="0"
+      max="366"
+      lazy-rules
+      :rules="[offsetRule]"
+    />
+    <div v-for="(id, index) in memberIds" :key="id" class="column q-gutter-xs">
+      <q-select
+        :model-value="id"
+        :options="optionsFor(id)"
+        emit-value
+        map-options
+        outlined
+        dense
+        label="Personne"
+        @update:model-value="replace(index, $event)"
+      />
+      <div class="row q-gutter-xs">
+        <q-btn dense flat no-caps color="primary" label="Monter" :disable="index === 0" @click="move(index, -1)" />
+        <q-btn
+          dense
+          flat
+          no-caps
+          color="primary"
+          label="Descendre"
+          :disable="index === memberIds.length - 1"
+          @click="move(index, 1)"
+        />
+        <q-btn dense flat no-caps color="negative" label="Retirer" @click="remove(index)" />
+      </div>
+    </div>
     <div class="row q-gutter-sm">
       <q-btn
         v-for="member in available"

@@ -5,18 +5,14 @@ module Api
 
       def create
         rotation = @coloc.rotations.new
-        save_rotation(rotation, reanchor: false, status: :created)
+        save_rotation(rotation, status: :created)
       rescue Calendar::Error => error
         render json: { errors: [ error.message ] }, status: :unprocessable_entity
       end
 
       def update
         rotation = @coloc.rotations.find(params[:id])
-        ids = member_ids
-        anchor = parse_anchor
-        order_changed = ids != rotation.rotation_members.order(:position).pluck(:user_id)
-        anchor_changed = anchor.beginning_of_week(:monday) != rotation.anchor_on
-        save_rotation(rotation, reanchor: order_changed && !anchor_changed, status: :ok)
+        save_rotation(rotation, status: :ok)
       rescue Calendar::Error => error
         render json: { errors: [ error.message ] }, status: :unprocessable_entity
       end
@@ -27,12 +23,14 @@ module Api
       end
 
       private
-        def save_rotation(rotation, reanchor:, status:)
+        def save_rotation(rotation, status:)
           saved = rotation.reschedule(
             title: params[:title],
-            anchor_on: parse_anchor,
-            member_ids:,
-            reanchor:
+            starts_on: parse_date(:starts_on, "La date de début"),
+            ends_on: nil,
+            turn_days: parse_count(:turn_days, minimum: 1, label: "La durée d'un passage"),
+            offset_days: parse_count(:offset_days, minimum: 0, label: "La pause"),
+            member_ids:
           )
           if saved
             render json: { rotation: rotation.as_rule }, status:
@@ -41,12 +39,23 @@ module Api
           end
         end
 
-        def parse_anchor
-          raise Calendar::Error, "La date de début est obligatoire" if params[:anchor_on].blank?
+        def parse_date(key, label)
+          raw = params[key]
+          raise Calendar::Error, "#{label} est obligatoire" if raw.blank?
 
-          Date.iso8601(params[:anchor_on].to_s)
+          Date.iso8601(raw.to_s)
         rescue Date::Error
-          raise Calendar::Error, "La date de début est invalide"
+          raise Calendar::Error, "#{label} est invalide"
+        end
+
+        def parse_count(key, minimum:, label:)
+          raw = params[key]
+          raise Calendar::Error, "#{label} est obligatoire" if raw.nil? || raw == ""
+
+          value = Integer(raw, exception: false)
+          return value if value && value >= minimum && value <= 366
+
+          raise Calendar::Error, "#{label} est invalide"
         end
 
         def member_ids

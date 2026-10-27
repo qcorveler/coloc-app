@@ -148,6 +148,53 @@ body.body--dark .banner-fallback {
   font-weight: 500;
 }
 
+.today-pill {
+  display: inline-block;
+  padding: 2px 12px;
+  border-radius: 999px;
+  background: var(--q-primary);
+  color: white;
+}
+
+.add-menu {
+  min-width: 180px;
+}
+
+.calendar-stage {
+  touch-action: pan-y;
+  overflow: hidden;
+}
+
+.calendar-stage.slide-next {
+  animation: calendar-next 180ms ease;
+}
+
+.calendar-stage.slide-prev {
+  animation: calendar-prev 180ms ease;
+}
+
+@keyframes calendar-next {
+  from {
+    transform: translateX(28px);
+    opacity: 0.45;
+  }
+  to {
+    transform: none;
+    opacity: 1;
+  }
+}
+
+@keyframes calendar-prev {
+  from {
+    transform: translateX(-28px);
+    opacity: 0.45;
+  }
+  to {
+    transform: none;
+    opacity: 1;
+  }
+}
+
 .sheet-card {
   width: 100%;
   max-width: 560px;
@@ -193,10 +240,12 @@ body.body--dark .calendar {
 }
 
 .month-head,
-.month,
+.week-row,
 .time-head,
 .all-day,
-.hour-body {
+.hour-body,
+.span-grid,
+.all-day-cells {
   display: grid;
   grid-template-columns: repeat(7, minmax(0, 1fr));
 }
@@ -207,6 +256,11 @@ body.body--dark .calendar {
   grid-template-columns: 52px repeat(var(--days), minmax(0, 1fr));
 }
 
+.span-grid,
+.all-day-cells {
+  grid-template-columns: repeat(var(--days), minmax(0, 1fr));
+}
+
 .month-head {
   margin-bottom: 4px;
   color: var(--grid-muted);
@@ -214,19 +268,31 @@ body.body--dark .calendar {
   text-align: center;
 }
 
-.day-cell {
-  min-height: 76px;
+.month {
   display: flex;
   flex-direction: column;
-  gap: 2px;
-  padding: 2px;
+}
+
+.day-cell {
+  min-height: 72px;
   border-top: 1px solid var(--grid-line);
   border-left: 1px solid var(--grid-line);
   cursor: pointer;
 }
 
-.day-cell.outside {
+.day-cell.outside,
+.week-row > .day-number.outside,
+.day-chips.outside {
   opacity: 0.45;
+}
+
+.day-chips {
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+  padding: 0 2px 2px;
 }
 
 .calendar button.day-number {
@@ -237,13 +303,30 @@ body.body--dark .calendar {
   border-radius: 999px;
 }
 
-.day-cell.today .day-number,
+.week-row > .day-number,
 .time-head .day-number {
+  z-index: 1;
+  justify-self: start;
+  margin: 2px;
   font-size: 13px;
 }
 
-.day-cell.today .day-number {
-  background: rgb(var(--q-primary));
+.time-head button.day-number {
+  justify-self: center;
+  width: auto;
+  max-width: 100%;
+  height: auto;
+  min-height: 28px;
+  padding: 2px 1px;
+  overflow: hidden;
+  font-size: 11px;
+  line-height: 1.15;
+  text-align: center;
+  white-space: normal;
+}
+
+.calendar button.day-number.today {
+  background: var(--q-primary);
   color: white;
 }
 
@@ -262,10 +345,41 @@ body.body--dark .calendar {
 }
 
 .calendar button.chip {
-  background: rgba(var(--q-primary), 0.15);
+  background: color-mix(in srgb, var(--q-primary) 24%, transparent);
+}
+
+.calendar button.span-bar {
+  z-index: 1;
+  align-self: center;
+  width: auto;
+  min-width: 0;
+  height: 18px;
+  margin: 1px;
+  overflow: hidden;
+  padding: 1px 4px;
+  border-radius: 4px;
+  background: color-mix(in srgb, var(--q-primary) 24%, transparent);
+  font-size: 11px;
+  line-height: 16px;
+  text-align: left;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.calendar button.span-bar.continued {
+  margin-left: 0;
+  border-top-left-radius: 0;
+  border-bottom-left-radius: 0;
+}
+
+.calendar button.span-bar.continues-after {
+  margin-right: 0;
+  border-top-right-radius: 0;
+  border-bottom-right-radius: 0;
 }
 
 .calendar button.chip.rotation,
+.calendar button.span-bar.rotation,
 .calendar button.block {
   color: white;
 }
@@ -274,7 +388,7 @@ body.body--dark .calendar {
   position: absolute;
   width: auto;
   border-radius: 6px;
-  background: rgb(var(--q-primary));
+  background: var(--q-primary);
   z-index: 1;
 }
 
@@ -283,11 +397,19 @@ body.body--dark .calendar {
 }
 
 .time-scroll {
-  overflow-x: auto;
+  overflow-x: hidden;
+  touch-action: pan-y;
 }
 
 .time-grid {
-  min-width: 760px;
+  min-width: 0;
+}
+
+.all-day-board {
+  grid-column: 2 / -1;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
 }
 
 .agenda-when {
@@ -337,3 +459,4 @@ body.body--dark .calendar {
     transparent 48px
   );
 }
+

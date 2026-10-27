@@ -27,7 +27,10 @@ export type RotationWeek = {
   title: string
   starts_on: string
   ends_on: string
-  anchor_on: string
+  rule_starts_on: string
+  rule_ends_on: string | null
+  turn_days: number
+  offset_days: number
   member_ids: number[]
   user: {
     id: number
@@ -54,7 +57,10 @@ export type EventInput = {
 
 export type RotationInput = {
   title: string
-  anchor_on: string
+  starts_on: string
+  ends_on: null
+  turn_days: number
+  offset_days: number
   member_ids: number[]
 }
 

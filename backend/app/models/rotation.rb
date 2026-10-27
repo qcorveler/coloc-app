@@ -8,13 +8,18 @@ class Rotation < ApplicationRecord
   normalizes :title, with: ->(title) { title.strip }
 
   validates :title, presence: { message: "est obligatoire" }, length: { maximum: 80, message: "est trop long (80 caractères maximum)" }
-  validates :anchor_on, presence: { message: "est obligatoire" }
-  validate :anchor_on_is_monday
+  validates :starts_on, presence: { message: "est obligatoire" }
+  validates :turn_days, numericality: { only_integer: true, greater_than: 0, less_than_or_equal_to: 366, message: "doit être entre 1 et 366 jours" }
+  validates :offset_days, numericality: { only_integer: true, greater_than_or_equal_to: 0, less_than_or_equal_to: 366, message: "doit être entre 0 et 366 jours" }
+  validate :ends_not_before_start
   validate :members_are_valid
 
-  def reschedule(title:, anchor_on:, member_ids:, reanchor:)
+  def reschedule(title:, starts_on:, ends_on:, turn_days:, offset_days:, member_ids:)
     self.title = title
-    self.anchor_on = resolve_anchor(anchor_on, reanchor)
+    self.starts_on = starts_on
+    self.ends_on = ends_on
+    self.turn_days = turn_days
+    self.offset_days = offset_days
     self.pending_member_ids = Array(member_ids).map(&:to_i)
     return false unless valid?
 
@@ -34,7 +39,6 @@ class Rotation < ApplicationRecord
 
     remaining = ids - [ user.id ]
     transaction do
-      update!(anchor_on: Date.current.beginning_of_week(:monday))
       rotation_members.delete_all
       remaining.each_with_index do |user_id, position|
         rotation_members.create!(user_id:, position:)
@@ -42,17 +46,39 @@ class Rotation < ApplicationRecord
     end
   end
 
-  def weeks_between(from, to)
+  def slots_between(from, to)
     members = rotation_members.includes(:user).sort_by(&:position)
-    return [] if members.empty? || anchor_on.blank?
+    return [] if members.empty? || starts_on.blank? || turn_days.to_i < 1 || offset_days.to_i.negative?
 
-    week = from.beginning_of_week(:monday)
-    week = anchor_on if week < anchor_on
+    horizon = ends_on || to
+    return [] if starts_on > horizon || horizon < from || starts_on > to
+
+    step = turn_days + offset_days
+    index = 0
+    cursor = starts_on
+    if cursor < from
+      earliest = from - (turn_days - 1)
+      if earliest > starts_on
+        index = ((earliest - starts_on).to_i + step - 1) / step
+        cursor = starts_on + (index * step)
+      end
+    end
+
     rows = []
-    while week <= to
-      member = members[((week - anchor_on).to_i / 7) % members.size]
-      rows << week_json(week, member.user, members)
-      week += 7
+    guard = 0
+    while cursor <= horizon && cursor <= to && guard < 1000
+      guard += 1
+      full_end = cursor + turn_days - 1
+      slot_end = ends_on && full_end > ends_on ? ends_on : full_end
+      if slot_end >= from && cursor <= to
+        member = members[index % members.size]
+        rows << slot_json(cursor, slot_end, member.user, members)
+      end
+      break if ends_on && full_end >= ends_on
+      break if step <= 0
+
+      cursor += step
+      index += 1
     end
     rows
   end
@@ -61,7 +87,10 @@ class Rotation < ApplicationRecord
     {
       id:,
       title:,
-      anchor_on: anchor_on.iso8601,
+      starts_on: starts_on.iso8601,
+      ends_on: ends_on&.iso8601,
+      turn_days:,
+      offset_days:,
       member_ids: rotation_members.order(:position).pluck(:user_id)
     }
   end
@@ -74,20 +103,16 @@ class Rotation < ApplicationRecord
 
   ATTRIBUTE_NAMES = {
     title: "Le titre",
-    anchor_on: "Le début"
+    starts_on: "La date de début",
+    ends_on: "La date de fin",
+    turn_days: "La durée d'un passage",
+    offset_days: "La pause"
   }.freeze
 
-  def resolve_anchor(anchor_on, reanchor)
-    return Date.current.beginning_of_week(:monday) if reanchor
-    return if anchor_on.blank?
+  def ends_not_before_start
+    return if ends_on.blank? || starts_on.blank? || ends_on >= starts_on
 
-    anchor_on.beginning_of_week(:monday)
-  end
-
-  def anchor_on_is_monday
-    return if anchor_on.blank? || anchor_on.monday?
-
-    errors.add(:anchor_on, "doit être un lundi")
+    errors.add(:ends_on, "ne peut pas être avant le début")
   end
 
   def members_are_valid
@@ -107,13 +132,16 @@ class Rotation < ApplicationRecord
     errors.add(:base, "Chaque personne doit faire partie de la coloc")
   end
 
-  def week_json(week, user, members)
+  def slot_json(cursor, slot_end, user, members)
     {
       id:,
       title:,
-      starts_on: week.iso8601,
-      ends_on: (week + 6).iso8601,
-      anchor_on: anchor_on.iso8601,
+      starts_on: cursor.iso8601,
+      ends_on: slot_end.iso8601,
+      rule_starts_on: starts_on.iso8601,
+      rule_ends_on: ends_on&.iso8601,
+      turn_days:,
+      offset_days:,
       member_ids: members.map(&:user_id),
       user: { id: user.id, first_name: user.first_name, last_name: user.last_name }
     }

@@ -18,6 +18,7 @@ declare module 'vue' {
     QItemSection: typeof import('quasar')['QItemSection']
     QLayout: typeof import('quasar')['QLayout']
     QList: typeof import('quasar')['QList']
+    QMenu: typeof import('quasar')['QMenu']
     QPage: typeof import('quasar')['QPage']
     QPageContainer: typeof import('quasar')['QPageContainer']
     QSelect: typeof import('quasar')['QSelect']

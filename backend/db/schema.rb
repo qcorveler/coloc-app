@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_10_26_133000) do
+ActiveRecord::Schema[8.1].define(version: 2026_10_27_231500) do
   create_table "active_storage_attachments", force: :cascade do |t|
     t.string "name", null: false
     t.string "record_type", null: false
@@ -105,9 +105,12 @@ ActiveRecord::Schema[8.1].define(version: 2026_10_26_133000) do
   create_table "rotations", force: :cascade do |t|
     t.integer "coloc_id", null: false
     t.string "title", null: false
-    t.date "anchor_on", null: false
+    t.date "starts_on", null: false
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.date "ends_on"
+    t.integer "turn_days", default: 7, null: false
+    t.integer "offset_days", default: 0, null: false
     t.index ["coloc_id"], name: "index_rotations_on_coloc_id"
   end
 
