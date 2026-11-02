@@ -1,9 +1,10 @@
 module Calendar
   class Window
-    def initialize(coloc, from:, to:)
+    def initialize(coloc, from:, to:, viewer: nil)
       @coloc = coloc
       @from = from
       @to = to
+      @viewer = viewer
     end
 
     def payload
@@ -15,7 +16,7 @@ module Calendar
 
     private
       def event_rows
-        @coloc.events.roots.includes(:cancellations, :replacements).flat_map { |event| expand(event) }
+        @coloc.events.roots.includes(:cancellations, :replacements, :event_reminders).flat_map { |event| expand(event) }
       end
 
       def expand(event)
@@ -63,7 +64,10 @@ module Calendar
           series_title: event.title,
           series_notes: event.notes,
           series_all_day: event.all_day,
-          color: membership_colors[source.created_by_id]
+          color: membership_colors[source.created_by_id],
+          created_by_id: event.created_by_id,
+          remind_user_ids: reminder_user_ids(event, "selected"),
+          subscribed: @viewer.present? && reminder_user_ids(event, "subscribed").include?(@viewer.id)
         }
       end
 
@@ -72,6 +76,10 @@ module Calendar
         @coloc.rotations.includes(rotation_members: :user).flat_map { |rotation|
           rotation.slots_between(@from, @to, colors:)
         }
+      end
+
+      def reminder_user_ids(event, source)
+        event.event_reminders.select { |reminder| reminder.source == source }.map(&:user_id)
       end
 
       def membership_colors

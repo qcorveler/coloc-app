@@ -8,11 +8,14 @@ Rails.application.routes.draw do
   namespace :api do
     resources :users, only: [ :create ]
     resource :session, only: [ :show, :create, :destroy ]
+    resource :push_subscription, only: [ :show, :update, :destroy ]
     resources :colocs, only: [ :index, :show, :create, :update ] do
       resource :membership, only: [ :destroy ], module: :colocs
       resource :invitation, only: [ :create ], module: :colocs
       resource :calendar, only: [ :show ], module: :colocs
-      resources :events, only: [ :create, :update, :destroy ], module: :colocs
+      resources :events, only: [ :create, :update, :destroy ], module: :colocs do
+        resource :reminder, only: [ :create, :destroy ]
+      end
       resources :rotations, only: [ :create, :update, :destroy ], module: :colocs
       resources :profiles, only: [ :show, :update ], module: :colocs
     end

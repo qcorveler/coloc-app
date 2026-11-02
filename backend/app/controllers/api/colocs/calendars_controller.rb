@@ -13,7 +13,7 @@ module Api
           return render json: { errors: [ "La période demandée est trop longue" ] }, status: :unprocessable_entity
         end
 
-        render json: Calendar::Window.new(@coloc, from:, to:).payload
+        render json: Calendar::Window.new(@coloc, from:, to:, viewer: Current.user).payload
       rescue Date::Error
         render json: { errors: [ "La période demandée est invalide" ] }, status: :unprocessable_entity
       end

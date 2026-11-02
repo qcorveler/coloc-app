@@ -6,7 +6,16 @@ module Api
       def create
         event = @coloc.events.new(parsed_attributes)
         event.created_by = Current.user
-        save_event(event, :created)
+        saved = false
+        Event.transaction do
+          saved = event.save
+          raise ActiveRecord::Rollback unless saved
+
+          assign_selected_reminders!(event)
+        end
+        save_event(event, saved, :created)
+      rescue Calendar::ReminderForbidden
+        render json: { error: "Seul le créateur choisit qui prévenir" }, status: :forbidden
       rescue Calendar::Error => error
         render json: { errors: [ error.message ] }, status: :unprocessable_entity
       end
@@ -14,18 +23,19 @@ module Api
       def update
         event = @coloc.events.roots.find(params[:id])
         target = nil
+        saved = false
         Event.transaction do
           target = target_for(event)
           target.assign_attributes(parsed_attributes)
           apply_occurrence_override(target, event) if target != event
-          raise ActiveRecord::Rollback unless target.save
-        end
+          saved = target.save
+          raise ActiveRecord::Rollback unless saved
 
-        if target.errors.empty?
-          render json: { event: event_json(target) }
-        else
-          render json: { errors: target.errors.full_messages }, status: :unprocessable_entity
+          assign_selected_reminders!(event) if target == event
         end
+        save_event(target, saved, :ok)
+      rescue Calendar::ReminderForbidden
+        render json: { error: "Seul le créateur choisit qui prévenir" }, status: :forbidden
       rescue Calendar::Error => error
         render json: { errors: [ error.message ] }, status: :unprocessable_entity
       end
@@ -43,12 +53,31 @@ module Api
       end
 
       private
-        def save_event(event, status)
-          if event.save
+        def save_event(event, saved, status)
+          if saved
             render json: { event: event_json(event) }, status: status
           else
             render json: { errors: event.errors.full_messages }, status: :unprocessable_entity
           end
+        end
+
+        def assign_selected_reminders!(event)
+          return unless params.key?(:remind_user_ids)
+          raise Calendar::ReminderForbidden unless event.created_by_id == Current.user.id
+
+          ids = reminder_user_ids
+          raise Calendar::Error, "Chaque personne doit faire partie de la coloc" unless @coloc.users.where(id: ids).count == ids.size
+
+          event.replace_selected_reminders!(ids)
+        end
+
+        def reminder_user_ids
+          ids = Array(params[:remind_user_ids]).map { |value| Integer(value, exception: false) }
+          if ids.any?(&:nil?) || ids.any? { |id| id <= 0 }
+            raise Calendar::Error, "Chaque personne doit faire partie de la coloc"
+          end
+
+          ids.uniq
         end
 
         def target_for(event)
@@ -139,7 +168,8 @@ module Api
             weekdays: event.weekday_numbers,
             until_on: event.until_on&.iso8601,
             replaces_event_id: event.replaces_event_id,
-            replaces_on: event.replaces_on&.iso8601
+            replaces_on: event.replaces_on&.iso8601,
+            remind_user_ids: event.event_reminders.where(source: "selected").order(:user_id).pluck(:user_id)
           }
         end
     end

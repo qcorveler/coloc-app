@@ -157,6 +157,59 @@ class CalendarTest < ActionDispatch::IntegrationTest
     assert_equal @coloc.memberships.find_by!(user: @owner).color, courses.first.fetch("color")
   end
 
+  test "lets the creator choose reminders and another member subscribe" do
+    bea = create_user("bea@coloc.test", first_name: "Bea")
+    @coloc.add_member(bea)
+
+    post api_coloc_events_path(@coloc), params: {
+      title: "Poubelles",
+      all_day: true,
+      starts_at: "2026-10-06",
+      ends_at: "2026-10-06",
+      recurrence: "weekly",
+      weekdays: [ 2 ],
+      remind_user_ids: [ bea.id ]
+    }, as: :json
+    assert_response :created
+    event_id = JSON.parse(response.body).dig("event", "id")
+    assert_equal [ bea.id ], JSON.parse(response.body).dig("event", "remind_user_ids")
+
+    row = calendar_events.find { |event| event.fetch("occurrence_on") == "2026-10-06" }
+    assert_equal [ bea.id ], row.fetch("remind_user_ids")
+    assert_equal false, row.fetch("subscribed")
+    assert_equal @owner.id, row.fetch("created_by_id")
+
+    sign_in(bea)
+    patch api_coloc_event_path(@coloc, event_id), params: {
+      title: "Poubelles piratées",
+      all_day: true,
+      starts_at: "2026-10-06",
+      ends_at: "2026-10-06",
+      recurrence: "weekly",
+      weekdays: [ 2 ],
+      remind_user_ids: [ @owner.id ]
+    }, as: :json
+    assert_response :forbidden
+
+    sign_in(@owner)
+    row = calendar_events.find { |event| event.fetch("occurrence_on") == "2026-10-06" }
+    assert_equal "Poubelles", row.fetch("title")
+    assert_equal [ bea.id ], row.fetch("remind_user_ids")
+
+    sign_in(bea)
+    post api_coloc_event_reminder_path(@coloc, event_id), params: {}, as: :json
+    assert_response :no_content
+    row = calendar_events.find { |event| event.fetch("occurrence_on") == "2026-10-06" }
+    assert_equal true, row.fetch("subscribed")
+    assert_equal [ bea.id ], row.fetch("remind_user_ids")
+
+    delete api_coloc_event_reminder_path(@coloc, event_id), as: :json
+    assert_response :no_content
+    row = calendar_events.find { |event| event.fetch("occurrence_on") == "2026-10-06" }
+    assert_equal false, row.fetch("subscribed")
+    assert_equal [ bea.id ], row.fetch("remind_user_ids")
+  end
+
   test "refuses the calendar to someone who is not a member" do
     sign_in(create_user("guest@coloc.test"))
 

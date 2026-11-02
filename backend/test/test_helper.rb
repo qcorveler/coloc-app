@@ -1,4 +1,7 @@
 ENV["RAILS_ENV"] ||= "test"
+ENV["VAPID_PUBLIC_KEY"] ||= "test-public-key"
+ENV["VAPID_PRIVATE_KEY"] ||= "test-private-key"
+ENV["VAPID_SUBJECT"] ||= "https://coloc.test"
 require_relative "../config/environment"
 require "rails/test_help"
 

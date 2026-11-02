@@ -65,6 +65,11 @@ export const router = createRouter({
           component: () => import('../views/PlanningView.vue'),
         },
         {
+          path: 'notifications',
+          name: 'coloc-notifications',
+          component: () => import('../views/NotificationsView.vue'),
+        },
+        {
           path: 'profil/modifier',
           name: 'coloc-profile-edit',
           component: () => import('../views/ProfileEditView.vue'),

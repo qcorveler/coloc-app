@@ -7,6 +7,9 @@ class User < ApplicationRecord
   has_many :colocs, through: :memberships
   has_many :created_events, class_name: "Event", foreign_key: :created_by_id, dependent: :nullify
   has_many :rotation_members, dependent: :destroy
+  has_many :push_subscriptions, dependent: :destroy
+  has_many :event_reminders, dependent: :destroy
+  has_many :reminder_deliveries, dependent: :destroy
   has_one_attached :avatar
 
   normalizes :email, with: ->(email) { email.strip.downcase }

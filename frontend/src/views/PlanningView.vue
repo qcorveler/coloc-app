@@ -8,10 +8,13 @@ import RotationForm from '../components/planning/RotationForm.vue'
 import TimeGrid from '../components/planning/TimeGrid.vue'
 import { ApiError } from '../lib/api'
 import { confirm } from '../lib/confirm'
+import { useAuth } from '../composables/useAuth'
 import {
   deleteEvent,
   deleteRotation,
   fetchCalendar,
+  subscribeEvent,
+  unsubscribeEvent,
   type CalendarEvent,
   type CalendarPayload,
   type RotationWeek,
@@ -32,6 +35,7 @@ import {
 } from '../lib/dates'
 
 const route = useRoute()
+const { user } = useAuth()
 const colocId = computed(() => String(route.params.id))
 const coloc = ref<Coloc | null>(null)
 const payload = ref<CalendarPayload>({ events: [], rotations: [] })
@@ -43,6 +47,7 @@ const modeOptions = [
 ]
 const cursor = ref(todayIso())
 const loading = ref(true)
+const reminding = ref(false)
 const errors = ref<string[]>([])
 
 type Panel =
@@ -218,12 +223,38 @@ function openRotation(rotation: RotationWeek) {
   panel.value = { kind: 'rotation-detail', rotation }
 }
 
+function canChooseReminders(current: Panel) {
+  if (current.kind !== 'event' || current.mode === 'occurrence') return false
+  if (current.mode === 'create') return true
+  return current.event?.created_by_id === user.value?.id
+}
+
 function editEvent(event: CalendarEvent, editMode: 'occurrence' | 'series') {
   panel.value = { kind: 'event', mode: editMode, event }
 }
 
 function editRotation(rotation: RotationWeek) {
   panel.value = { kind: 'rotation', rotation }
+}
+
+async function toggleReminder(event: CalendarEvent) {
+  reminding.value = true
+  try {
+    if (event.subscribed) await unsubscribeEvent(colocId.value, event.id)
+    else await subscribeEvent(colocId.value, event.id)
+    const subscribed = !event.subscribed
+    payload.value = {
+      ...payload.value,
+      events: payload.value.events.map((row) => (row.id === event.id ? { ...row, subscribed } : row)),
+    }
+    if (panel.value?.kind === 'event-detail' && panel.value.event.id === event.id) {
+      panel.value = { kind: 'event-detail', event: { ...panel.value.event, subscribed } }
+    }
+  } catch (error) {
+    errors.value = error instanceof ApiError ? error.errors : ['Impossible de modifier le rappel']
+  } finally {
+    reminding.value = false
+  }
 }
 
 async function onSaved() {
@@ -372,6 +403,8 @@ function recurrenceLabel(event: CalendarEvent) {
           :mode="panel.mode"
           :event="panel.event"
           :initial-date="cursor"
+          :members="coloc?.members ?? []"
+          :can-choose-reminders="canChooseReminders(panel)"
           @saved="onSaved"
           @cancel="panel = null"
         />
@@ -393,7 +426,19 @@ function recurrenceLabel(event: CalendarEvent) {
           <p>{{ describeEvent(panel.event) }}</p>
           <p v-if="panel.event.recurring" class="muted">{{ recurrenceLabel(panel.event) }}</p>
           <p v-if="panel.event.notes" class="q-mt-md">{{ panel.event.notes }}</p>
+          <p v-if="user && panel.event.remind_user_ids.includes(user.id)" class="muted q-mb-none">
+            Le créateur t’a ajouté aux rappels.
+          </p>
           <div class="column q-gutter-sm q-mt-md">
+            <q-btn
+              v-if="user"
+              outline
+              no-caps
+              color="primary"
+              :loading="reminding"
+              :label="panel.event.subscribed ? 'Ne plus m’abonner' : 'M’abonner au rappel'"
+              @click="toggleReminder(panel.event)"
+            />
             <template v-if="panel.event.recurring">
               <q-btn color="primary" unelevated no-caps label="Modifier ce jour-ci" @click="editEvent(panel.event, 'occurrence')" />
               <q-btn outline no-caps color="primary" label="Modifier la série" @click="editEvent(panel.event, 'series')" />

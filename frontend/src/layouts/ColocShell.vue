@@ -127,6 +127,16 @@ async function onLogout() {
             <q-item-section>Créer une coloc</q-item-section>
           </q-item>
           <q-item
+            clickable
+            :to="{ name: 'coloc-notifications', params: { id: colocId } }"
+            @click="drawer = false"
+          >
+            <q-item-section avatar>
+              <q-icon name="notifications" />
+            </q-item-section>
+            <q-item-section>Notifications</q-item-section>
+          </q-item>
+          <q-item
             v-if="user"
             clickable
             :to="{ name: 'coloc-profile', params: { id: colocId, userId: user.id } }"

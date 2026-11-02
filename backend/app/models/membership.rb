@@ -29,6 +29,7 @@ class Membership < ApplicationRecord
   validate :color_known
 
   after_destroy :remove_from_rotations
+  after_destroy :remove_event_reminders
 
   def self.human_attribute_name(attribute, options = {})
     ATTRIBUTE_NAMES.fetch(attribute.to_sym) { super }
@@ -65,5 +66,9 @@ class Membership < ApplicationRecord
 
   def remove_from_rotations
     Rotation.where(coloc_id:).find_each { |rotation| rotation.drop_member(user) }
+  end
+
+  def remove_event_reminders
+    EventReminder.where(user_id:, event_id: Event.where(coloc_id:).select(:id)).delete_all
   end
 end

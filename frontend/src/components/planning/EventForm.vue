@@ -2,6 +2,7 @@
 import { computed, ref, watch } from 'vue'
 import { ApiError } from '../../lib/api'
 import { saveEvent, type CalendarEvent, type EventInput, type Recurrence } from '../../lib/calendar'
+import type { ColocMember } from '../../lib/colocs'
 import {
   WEEKDAY_OPTIONS,
   addDays,
@@ -18,6 +19,8 @@ const props = defineProps<{
   mode: 'create' | 'occurrence' | 'series'
   event: CalendarEvent | null
   initialDate: string
+  members: ColocMember[]
+  canChooseReminders: boolean
 }>()
 
 const emit = defineEmits<{
@@ -36,10 +39,15 @@ const endTime = ref(initial.endTime)
 const recurrence = ref<Recurrence>(initial.recurrence)
 const weekdays = ref<number[]>(initial.weekdays)
 const untilOn = ref(initial.untilOn)
+const remindUserIds = ref<number[]>(props.canChooseReminders ? [...(props.event?.remind_user_ids ?? [])] : [])
 const errors = ref<string[]>([])
 const submitting = ref(false)
 
 const showRepeat = computed(() => props.mode !== 'occurrence')
+const memberOptions = computed(() => props.members.map((member) => ({
+  label: `${member.first_name} ${member.last_name}`,
+  value: member.id,
+})))
 const heading = computed(() => {
   if (props.mode === 'create') return 'Nouvel événement'
   if (props.mode === 'occurrence') return 'Modifier ce jour-ci'
@@ -172,6 +180,7 @@ async function submit() {
     weekdays: showRepeat.value && spansWeeks(recurrence.value) ? days : [],
     until_on: showRepeat.value && recurrence.value !== 'none' && untilOn.value ? untilOn.value : null,
   }
+  if (props.canChooseReminders) fields.remind_user_ids = [...remindUserIds.value]
 
   try {
     await saveEvent(
@@ -222,6 +231,17 @@ async function submit() {
       </div>
       <q-input v-if="recurrence !== 'none'" v-model="untilOn" type="date" label="Jusqu’au" outlined />
     </template>
+    <q-select
+      v-if="canChooseReminders"
+      v-model="remindUserIds"
+      label="Qui prévenir"
+      outlined
+      multiple
+      use-chips
+      emit-value
+      map-options
+      :options="memberOptions"
+    />
     <q-input v-model="notes" type="textarea" label="Notes" outlined autogrow maxlength="2000" />
     <q-banner v-if="errors.length" class="bg-negative text-white" rounded>
       <div v-for="(message, index) in errors" :key="index">{{ message }}</div>

@@ -21,6 +21,9 @@ export type CalendarEvent = {
   series_notes: string | null
   series_all_day: boolean
   color: string | null
+  created_by_id: number | null
+  remind_user_ids: number[]
+  subscribed: boolean
 }
 
 export type RotationWeek = {
@@ -55,6 +58,7 @@ export type EventInput = {
   recurrence: Recurrence
   weekdays: number[]
   until_on: string | null
+  remind_user_ids?: number[]
 }
 
 export type RotationInput = {
@@ -112,6 +116,17 @@ export async function saveEvent(
   const method = eventId === null ? 'POST' : 'PATCH'
   const query = occurrence ? `?occurrence=${encodeURIComponent(occurrence)}` : ''
   await api(`${path}${query}`, { method, body: JSON.stringify(fields) })
+}
+
+export async function subscribeEvent(colocId: number | string, eventId: number) {
+  await api<void>(`/api/colocs/${colocId}/events/${eventId}/reminder`, {
+    method: 'POST',
+    body: '{}',
+  })
+}
+
+export async function unsubscribeEvent(colocId: number | string, eventId: number) {
+  await api<void>(`/api/colocs/${colocId}/events/${eventId}/reminder`, { method: 'DELETE' })
 }
 
 export async function deleteEvent(colocId: number | string, eventId: number, occurrence?: string) {

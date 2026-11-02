@@ -9,6 +9,7 @@ console_command = '/rails/bin/rails console'
 
 [build]
 [env]
+  SOLID_QUEUE_IN_PUMA = 'true'
 
 [processes]
   app = './bin/rails server'

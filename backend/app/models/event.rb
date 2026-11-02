@@ -6,6 +6,7 @@ class Event < ApplicationRecord
   belongs_to :replaces_event, class_name: "Event", optional: true, inverse_of: :replacements
   has_many :cancellations, class_name: "EventCancellation", dependent: :destroy
   has_many :replacements, class_name: "Event", foreign_key: :replaces_event_id, dependent: :destroy, inverse_of: :replaces_event
+  has_many :event_reminders, dependent: :destroy
 
   scope :roots, -> { where(replaces_event_id: nil) }
 
@@ -78,6 +79,15 @@ class Event < ApplicationRecord
   def occurrence_range(date)
     day_offset = (ends_at.in_time_zone.to_date - starts_at.in_time_zone.to_date).to_i
     [ clock_on(starts_at, date), clock_on(ends_at, date + day_offset) ]
+  end
+
+  def replace_selected_reminders!(user_ids)
+    transaction do
+      event_reminders.where(source: "selected").where.not(user_id: user_ids).delete_all
+      user_ids.each do |user_id|
+        event_reminders.find_or_create_by!(user_id:, source: "selected")
+      end
+    end
   end
 
   def cancel_occurrence!(date)

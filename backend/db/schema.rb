@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_10_29_003000) do
+ActiveRecord::Schema[8.1].define(version: 2026_11_02_180000) do
   create_table "active_storage_attachments", force: :cascade do |t|
     t.string "name", null: false
     t.string "record_type", null: false
@@ -59,6 +59,17 @@ ActiveRecord::Schema[8.1].define(version: 2026_10_29_003000) do
     t.index ["event_id"], name: "index_event_cancellations_on_event_id"
   end
 
+  create_table "event_reminders", force: :cascade do |t|
+    t.integer "event_id", null: false
+    t.integer "user_id", null: false
+    t.string "source", null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["event_id", "user_id", "source"], name: "index_event_reminders_on_event_user_and_source", unique: true
+    t.index ["event_id"], name: "index_event_reminders_on_event_id"
+    t.index ["user_id"], name: "index_event_reminders_on_user_id"
+  end
+
   create_table "events", force: :cascade do |t|
     t.integer "coloc_id", null: false
     t.integer "created_by_id"
@@ -90,6 +101,28 @@ ActiveRecord::Schema[8.1].define(version: 2026_10_29_003000) do
     t.index ["coloc_id"], name: "index_memberships_on_coloc_id"
     t.index ["user_id", "coloc_id"], name: "index_memberships_on_user_id_and_coloc_id", unique: true
     t.index ["user_id"], name: "index_memberships_on_user_id"
+  end
+
+  create_table "push_subscriptions", force: :cascade do |t|
+    t.integer "user_id", null: false
+    t.text "endpoint", null: false
+    t.string "p256dh", null: false
+    t.string "auth", null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["endpoint"], name: "index_push_subscriptions_on_endpoint", unique: true
+    t.index ["user_id"], name: "index_push_subscriptions_on_user_id"
+  end
+
+  create_table "reminder_deliveries", force: :cascade do |t|
+    t.integer "user_id", null: false
+    t.string "subject_type", null: false
+    t.integer "subject_id", null: false
+    t.date "occurrence_on", null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["user_id", "subject_type", "subject_id", "occurrence_on"], name: "index_reminder_deliveries_uniqueness", unique: true
+    t.index ["user_id"], name: "index_reminder_deliveries_on_user_id"
   end
 
   create_table "rotation_members", force: :cascade do |t|
@@ -142,11 +175,15 @@ ActiveRecord::Schema[8.1].define(version: 2026_10_29_003000) do
   add_foreign_key "active_storage_attachments", "active_storage_blobs", column: "blob_id"
   add_foreign_key "active_storage_variant_records", "active_storage_blobs", column: "blob_id"
   add_foreign_key "event_cancellations", "events"
+  add_foreign_key "event_reminders", "events"
+  add_foreign_key "event_reminders", "users"
   add_foreign_key "events", "colocs"
   add_foreign_key "events", "events", column: "replaces_event_id"
   add_foreign_key "events", "users", column: "created_by_id", on_delete: :nullify
   add_foreign_key "memberships", "colocs"
   add_foreign_key "memberships", "users"
+  add_foreign_key "push_subscriptions", "users"
+  add_foreign_key "reminder_deliveries", "users"
   add_foreign_key "rotation_members", "rotations"
   add_foreign_key "rotation_members", "users"
   add_foreign_key "rotations", "colocs"
