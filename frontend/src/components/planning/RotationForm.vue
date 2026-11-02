@@ -136,7 +136,9 @@ async function submit() {
       :rules="[offsetRule]"
     />
     <div v-for="(id, index) in memberIds" :key="id" class="column q-gutter-xs">
+      <div v-if="available.length === 0" class="text-body1">{{ memberName(id) }}</div>
       <q-select
+        v-else
         :model-value="id"
         :options="optionsFor(id)"
         emit-value
@@ -174,7 +176,7 @@ async function submit() {
     <q-banner v-if="errors.length" class="bg-negative text-white" rounded>
       <div v-for="(message, index) in errors" :key="index">{{ message }}</div>
     </q-banner>
-    <q-btn type="submit" color="primary" unelevated no-caps class="full-width" label="Enregistrer" :loading="submitting" />
-    <q-btn outline no-caps color="primary" class="full-width" label="Annuler" @click="emit('cancel')" />
+    <q-btn type="submit" color="primary" unelevated no-caps label="Enregistrer" :loading="submitting" />
+    <q-btn outline no-caps color="primary" label="Annuler" @click="emit('cancel')" />
   </q-form>
 </template>

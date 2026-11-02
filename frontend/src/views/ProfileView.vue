@@ -27,7 +27,7 @@ async function load() {
   try {
     const next = await fetchProfile(colocId, userId)
     if (!sameRoute(colocId, userId)) return
-    profile.value = next
+    profile.value = next.profile
   } catch (error) {
     if (!sameRoute(colocId, userId)) return
     profile.value = null
@@ -43,6 +43,10 @@ function sameRoute(colocId: string, userId: string) {
 
 function formatDate(iso: string) {
   return new Intl.DateTimeFormat('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' }).format(parseLocal(iso))
+}
+
+function displayPronouns(value: string) {
+  return value.charAt(0).toUpperCase() + value.slice(1)
 }
 </script>
 
@@ -60,7 +64,8 @@ function formatDate(iso: string) {
           {{ initial(profile.first_name) }}
         </q-avatar>
         <h1 class="text-h5 q-mt-md q-mb-none">{{ profile.first_name }} {{ profile.last_name }}</h1>
-        <p v-if="profile.pronouns" class="muted q-mt-xs q-mb-none">{{ profile.pronouns }}</p>
+        <p v-if="profile.pronouns" class="muted q-mt-xs q-mb-none">{{ displayPronouns(profile.pronouns) }}</p>
+        <span class="color-dot q-mt-sm" :style="{ background: profile.color }" aria-hidden="true" />
       </div>
       <p class="q-mt-lg q-mb-none" :class="{ muted: !profile.mood }">{{ profile.mood || 'Pas encore d’humeur.' }}</p>
       <p class="q-my-md" :class="{ muted: !profile.description }">{{ profile.description || 'Pas encore de description.' }}</p>

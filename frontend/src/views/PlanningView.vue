@@ -54,7 +54,7 @@ type Panel =
 const panel = ref<Panel | null>(null)
 const slideClass = ref('')
 const addMenu = ref<{ hide: () => void } | null>(null)
-let swipeOrigin: { x: number; y: number } | null = null
+let swipe: { x: number; y: number; dx: number; dy: number; horizontal: boolean } | null = null
 
 const range = computed(() => {
   if (mode.value === 'month') {
@@ -130,28 +130,34 @@ function shift(direction: number) {
   })
 }
 
+function swipeTargetIgnored(target: EventTarget | null) {
+  return target instanceof Element && Boolean(target.closest('button, a, input, textarea, select, label, .q-btn, .q-field, .q-dialog, .q-menu'))
+}
+
 function onPointerDown(event: PointerEvent) {
-  if (event.button !== 0) return
-  cancelPointer()
-  swipeOrigin = { x: event.clientX, y: event.clientY }
+  if (event.button !== 0 || swipeTargetIgnored(event.target)) return
+  endSwipeListeners()
+  swipe = { x: event.clientX, y: event.clientY, dx: 0, dy: 0, horizontal: false }
+  window.addEventListener('pointermove', trackPointer, { passive: false })
   window.addEventListener('pointerup', finishPointer)
-  window.addEventListener('pointercancel', cancelPointer)
+  window.addEventListener('pointercancel', onPointerCancel)
 }
 
-function cancelPointer() {
-  swipeOrigin = null
-  window.removeEventListener('pointerup', finishPointer)
-  window.removeEventListener('pointercancel', cancelPointer)
+function trackPointer(event: PointerEvent) {
+  if (!swipe) return
+  swipe.dx = event.clientX - swipe.x
+  swipe.dy = event.clientY - swipe.y
+  if (!swipe.horizontal && Math.abs(swipe.dx) > 10 && Math.abs(swipe.dx) > Math.abs(swipe.dy)) {
+    swipe.horizontal = true
+  }
+  if (swipe.horizontal && event.cancelable) event.preventDefault()
 }
 
-function finishPointer(event: PointerEvent) {
-  window.removeEventListener('pointerup', finishPointer)
-  window.removeEventListener('pointercancel', cancelPointer)
-  if (!swipeOrigin) return
-  const dx = event.clientX - swipeOrigin.x
-  const dy = event.clientY - swipeOrigin.y
-  swipeOrigin = null
-  if (Math.abs(dx) < 50 || Math.abs(dx) < Math.abs(dy) * 1.5) return
+function swipeReady(dx: number, dy: number) {
+  return Math.abs(dx) >= 50 && Math.abs(dx) > Math.abs(dy) * 1.5
+}
+
+function applySwipe(dx: number) {
   shift(dx < 0 ? 1 : -1)
   const stopClick = (click: Event) => {
     click.preventDefault()
@@ -161,13 +167,35 @@ function finishPointer(event: PointerEvent) {
   window.addEventListener('click', stopClick, true)
 }
 
+function endSwipeListeners() {
+  swipe = null
+  window.removeEventListener('pointermove', trackPointer)
+  window.removeEventListener('pointerup', finishPointer)
+  window.removeEventListener('pointercancel', onPointerCancel)
+}
+
+function finishPointer(event: PointerEvent) {
+  if (!swipe) return
+  const dx = event.clientX - swipe.x
+  const dy = event.clientY - swipe.y
+  endSwipeListeners()
+  if (swipeReady(dx, dy)) applySwipe(dx)
+}
+
+function onPointerCancel() {
+  if (!swipe) return
+  const { dx, dy } = swipe
+  endSwipeListeners()
+  if (swipeReady(dx, dy)) applySwipe(dx)
+}
+
 function createFromMenu(kind: 'event' | 'rotation') {
   addMenu.value?.hide()
   if (kind === 'event') openCreateEvent()
   else openCreateRotation()
 }
 
-onUnmounted(cancelPointer)
+onUnmounted(endSwipeListeners)
 
 function openDay(day: string) {
   cursor.value = day
@@ -261,12 +289,14 @@ function recurrenceLabel(event: CalendarEvent) {
   if (event.recurrence === 'daily') return 'Chaque jour'
   if (event.recurrence === 'monthly') return 'Chaque mois'
   const names = ['', 'lundi', 'mardi', 'mercredi', 'jeudi', 'vendredi', 'samedi', 'dimanche']
-  return `Chaque semaine (${event.weekdays.map((day) => names[day]).join(', ')})`
+  const days = event.weekdays.map((day) => names[day]).join(', ')
+  if (event.recurrence === 'biweekly') return `Toutes les 2 semaines (${days})`
+  return `Chaque semaine (${days})`
 }
 </script>
 
 <template>
-  <q-page class="page wide">
+  <q-page class="page wide" @pointerdown="onPointerDown">
     <div class="row items-center no-wrap q-mb-sm">
       <q-btn flat round icon="chevron_left" aria-label="Période précédente" @click="shift(-1)" />
       <h1 class="planning-heading">
@@ -297,11 +327,7 @@ function recurrenceLabel(event: CalendarEvent) {
         </q-menu>
       </q-btn>
     </div>
-    <div
-      class="calendar-stage"
-      :class="slideClass"
-      @pointerdown="onPointerDown"
-    >
+    <div class="calendar-stage" :class="slideClass">
       <div v-if="loading" class="row justify-center q-pa-md">
         <q-spinner color="primary" size="32px" />
       </div>

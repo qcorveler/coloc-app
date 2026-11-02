@@ -7,7 +7,7 @@ module Api
         membership = membership_for(params[:id])
         return render json: { error: "Introuvable" }, status: :not_found unless membership
 
-        render json: { profile: membership.user.profile_json(host: request.base_url, arrived_on: membership.arrived_on) }
+        render json: profile_payload(membership)
       end
 
       def update
@@ -18,6 +18,7 @@ module Api
         user = membership.user
         user.avatar.purge if remove_avatar? && params[:avatar].blank?
         membership.arrived_on = params[:arrived_on] if params.key?(:arrived_on)
+        membership.color = params[:color] if params.key?(:color)
 
         saved = User.transaction do
           user.assign_attributes(user_attributes)
@@ -33,9 +34,7 @@ module Api
         end
 
         if saved
-          render json: {
-            profile: user.reload.profile_json(host: request.base_url, arrived_on: membership.reload.arrived_on)
-          }
+          render json: profile_payload(membership.reload)
         else
           render json: { errors: user.errors.full_messages + membership.errors.full_messages }, status: :unprocessable_entity
         end
@@ -44,6 +43,18 @@ module Api
       private
         def membership_for(user_id)
           @coloc.memberships.includes(:user).find_by(user_id:)
+        end
+
+        def profile_payload(membership)
+          {
+            profile: membership.user.profile_json(
+              host: request.base_url,
+              arrived_on: membership.arrived_on,
+              color: membership.color
+            ),
+            colors: Membership::COLORS,
+            taken_colors: @coloc.memberships.where.not(user_id: membership.user_id).pluck(:color)
+          }
         end
 
         def user_attributes

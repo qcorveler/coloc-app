@@ -1,7 +1,7 @@
 import { api } from './api'
 import { addDays } from './dates'
 
-export type Recurrence = 'none' | 'daily' | 'weekly' | 'monthly'
+export type Recurrence = 'none' | 'daily' | 'weekly' | 'biweekly' | 'monthly'
 
 export type CalendarEvent = {
   id: number
@@ -20,6 +20,7 @@ export type CalendarEvent = {
   series_title: string
   series_notes: string | null
   series_all_day: boolean
+  color: string | null
 }
 
 export type RotationWeek = {
@@ -36,6 +37,7 @@ export type RotationWeek = {
     id: number
     first_name: string
     last_name: string
+    color: string | null
   }
 }
 
@@ -66,8 +68,14 @@ export type RotationInput = {
 
 const MEMBER_COLORS = ['#7c5cbf', '#0f8a7e', '#d06a2b', '#2f6f9f', '#b4234e', '#5c7f22']
 
-export function memberColor(userId: number) {
+export function memberColor(userId: number, stored?: string | null) {
+  if (stored) return stored
   return MEMBER_COLORS[Math.abs(userId) % MEMBER_COLORS.length]
+}
+
+export function eventFill(color: string | null | undefined) {
+  if (!color) return ''
+  return `color-mix(in srgb, ${color} 34%, transparent)`
 }
 
 export function overlapsDay(startsAt: string, endsAt: string, day: string) {

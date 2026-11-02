@@ -46,9 +46,11 @@ class Rotation < ApplicationRecord
     end
   end
 
-  def slots_between(from, to)
+  def slots_between(from, to, colors: nil)
     members = rotation_members.includes(:user).sort_by(&:position)
     return [] if members.empty? || starts_on.blank? || turn_days.to_i < 1 || offset_days.to_i.negative?
+
+    colors ||= member_colors
 
     horizon = ends_on || to
     return [] if starts_on > horizon || horizon < from || starts_on > to
@@ -72,7 +74,7 @@ class Rotation < ApplicationRecord
       slot_end = ends_on && full_end > ends_on ? ends_on : full_end
       if slot_end >= from && cursor <= to
         member = members[index % members.size]
-        rows << slot_json(cursor, slot_end, member.user, members)
+        rows << slot_json(cursor, slot_end, member.user, members, colors)
       end
       break if ends_on && full_end >= ends_on
       break if step <= 0
@@ -132,7 +134,13 @@ class Rotation < ApplicationRecord
     errors.add(:base, "Chaque personne doit faire partie de la coloc")
   end
 
-  def slot_json(cursor, slot_end, user, members)
+  def member_colors
+    return {} unless coloc
+
+    coloc.memberships.pluck(:user_id, :color).to_h
+  end
+
+  def slot_json(cursor, slot_end, user, members, colors)
     {
       id:,
       title:,
@@ -143,7 +151,12 @@ class Rotation < ApplicationRecord
       turn_days:,
       offset_days:,
       member_ids: members.map(&:user_id),
-      user: { id: user.id, first_name: user.first_name, last_name: user.last_name }
+      user: {
+        id: user.id,
+        first_name: user.first_name,
+        last_name: user.last_name,
+        color: colors[user.id]
+      }
     }
   end
 end

@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import {
+  eventFill,
   memberColor,
   type CalendarEvent,
   type RotationWeek,
@@ -43,7 +44,7 @@ const multiDay = computed(() => {
     .map((rotation): Bar => ({
       key: `rotation-${rotation.id}-${rotation.starts_on}`,
       label: `${rotation.title} · ${rotation.user.first_name}`,
-      color: memberColor(rotation.user.id),
+      color: memberColor(rotation.user.id, rotation.user.color),
       start: rotation.starts_on,
       end: rotation.ends_on,
       event: null,
@@ -55,7 +56,7 @@ const multiDay = computed(() => {
     return [{
       key: `event-${event.id}-${event.occurrence_on}`,
       label: event.all_day ? event.title : `${clock(event.starts_at)} ${event.title}`,
-      color: '',
+      color: eventFill(event.color),
       start: bounds.start,
       end: bounds.end,
       event,
@@ -83,7 +84,7 @@ function chips(day: string): Chip[] {
     .map((rotation): Chip => ({
       key: `rotation-${rotation.id}-${rotation.starts_on}`,
       label: `${rotation.title} · ${rotation.user.first_name}`,
-      color: memberColor(rotation.user.id),
+      color: memberColor(rotation.user.id, rotation.user.color),
       event: null,
       rotation,
     }))
@@ -97,7 +98,7 @@ function chips(day: string): Chip[] {
     .map((event): Chip => ({
       key: `event-${event.id}-${event.occurrence_on}`,
       label: event.all_day ? event.title : `${clock(event.starts_at)} ${event.title}`,
-      color: '',
+      color: eventFill(event.color),
       event,
       rotation: null,
     }))

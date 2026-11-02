@@ -141,6 +141,22 @@ class CalendarTest < ActionDispatch::IntegrationTest
     end
   end
 
+  test "repeats an event every two weeks on the creator color" do
+    post api_coloc_events_path(@coloc), params: {
+      title: "Courses",
+      all_day: true,
+      starts_at: "2026-10-06",
+      ends_at: "2026-10-06",
+      recurrence: "biweekly",
+      weekdays: [ 2 ]
+    }, as: :json
+    assert_response :created
+
+    courses = calendar_events.select { |event| event.fetch("title") == "Courses" }
+    assert_equal [ "2026-10-06", "2026-10-20" ], courses.map { |event| event.fetch("occurrence_on") }
+    assert_equal @coloc.memberships.find_by!(user: @owner).color, courses.first.fetch("color")
+  end
+
   test "refuses the calendar to someone who is not a member" do
     sign_in(create_user("guest@coloc.test"))
 

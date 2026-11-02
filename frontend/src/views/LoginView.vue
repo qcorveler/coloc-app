@@ -72,7 +72,7 @@ async function onSubmit() {
       <q-banner v-if="errors.length" class="bg-negative text-white" rounded>
         <div v-for="(message, index) in errors" :key="index">{{ message }}</div>
       </q-banner>
-      <q-btn type="submit" color="primary" unelevated no-caps class="full-width" label="Se connecter" :loading="submitting" />
+      <q-btn type="submit" color="primary" unelevated no-caps label="Se connecter" :loading="submitting" />
     </q-form>
     <p class="q-mt-lg">
       Pas encore de compte ?

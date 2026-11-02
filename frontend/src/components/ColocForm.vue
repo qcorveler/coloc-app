@@ -96,6 +96,6 @@ function onSubmit() {
     <q-input v-model="name" label="Nom" outlined maxlength="80" lazy-rules :rules="[requiredRule]" />
     <q-input v-model="address" label="Adresse" outlined maxlength="200" lazy-rules :rules="[requiredRule]" />
     <q-input v-model="description" type="textarea" label="Description" outlined autogrow maxlength="5000" />
-    <q-btn type="submit" color="primary" unelevated no-caps class="full-width" :label="submitLabel" :loading="submitting" />
+    <q-btn type="submit" color="primary" unelevated no-caps :label="submitLabel" :loading="submitting" />
   </q-form>
 </template>

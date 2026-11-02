@@ -113,23 +113,28 @@ const recurrenceOptions: { label: string; value: Recurrence }[] = [
   { label: 'Aucune', value: 'none' },
   { label: 'Chaque jour', value: 'daily' },
   { label: 'Chaque semaine', value: 'weekly' },
+  { label: 'Toutes les 2 semaines', value: 'biweekly' },
   { label: 'Chaque mois', value: 'monthly' },
 ]
+
+function spansWeeks(value: Recurrence) {
+  return value === 'weekly' || value === 'biweekly'
+}
 
 function toggleWeekday(day: number) {
   const next = weekdays.value.includes(day)
     ? weekdays.value.filter((value) => value !== day)
     : [...weekdays.value, day].sort((a, b) => a - b)
   weekdays.value = next
-  if (recurrence.value === 'weekly') shiftToWeekdays(next)
+  if (spansWeeks(recurrence.value)) shiftToWeekdays(next)
 }
 
 function onRecurrenceChange(value: Recurrence) {
   recurrence.value = value
-  if (value === 'weekly' && weekdays.value.length === 0) {
+  if (spansWeeks(value) && weekdays.value.length === 0) {
     weekdays.value = [isoWeekday(startDate.value)]
   }
-  if (value === 'weekly') shiftToWeekdays(weekdays.value)
+  if (spansWeeks(value)) shiftToWeekdays(weekdays.value)
 }
 
 function shiftToWeekdays(days: number[]) {
@@ -146,7 +151,7 @@ async function submit() {
   let starts = startDate.value
   let ends = endDate.value
   let days = [...weekdays.value]
-  if (showRepeat.value && recurrence.value === 'weekly') {
+  if (showRepeat.value && spansWeeks(recurrence.value)) {
     if (days.length === 0) days = [isoWeekday(starts)]
     const aligned = alignToWeekday(starts, days)
     const delta = dayDelta(starts, aligned)
@@ -164,7 +169,7 @@ async function submit() {
     starts_at: allDay.value ? starts : `${starts}T${startTime.value}`,
     ends_at: allDay.value ? ends : `${ends}T${endTime.value}`,
     recurrence: showRepeat.value ? recurrence.value : 'none',
-    weekdays: showRepeat.value && recurrence.value === 'weekly' ? days : [],
+    weekdays: showRepeat.value && spansWeeks(recurrence.value) ? days : [],
     until_on: showRepeat.value && recurrence.value !== 'none' && untilOn.value ? untilOn.value : null,
   }
 
@@ -202,7 +207,7 @@ async function submit() {
         :options="recurrenceOptions"
         @update:model-value="onRecurrenceChange"
       />
-      <div v-if="recurrence === 'weekly'" class="row q-gutter-xs">
+      <div v-if="recurrence === 'weekly' || recurrence === 'biweekly'" class="row q-gutter-xs">
         <q-btn
           v-for="day in WEEKDAY_OPTIONS"
           :key="day.value"
@@ -221,7 +226,7 @@ async function submit() {
     <q-banner v-if="errors.length" class="bg-negative text-white" rounded>
       <div v-for="(message, index) in errors" :key="index">{{ message }}</div>
     </q-banner>
-    <q-btn type="submit" color="primary" unelevated no-caps class="full-width" label="Enregistrer" :loading="submitting" />
-    <q-btn outline no-caps color="primary" class="full-width" label="Annuler" @click="emit('cancel')" />
+    <q-btn type="submit" color="primary" unelevated no-caps label="Enregistrer" :loading="submitting" />
+    <q-btn outline no-caps color="primary" label="Annuler" @click="emit('cancel')" />
   </q-form>
 </template>

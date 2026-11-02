@@ -22,7 +22,10 @@ class ProfilesTest < ActionDispatch::IntegrationTest
     assert_equal "1990-01-01", profile.fetch("date_of_birth")
     assert_equal Date.current.to_s, profile.fetch("arrived_on")
     assert_nil profile.fetch("avatar_url")
+    assert_equal Membership::COLORS.first, profile.fetch("color")
     assert_not profile.key?("email")
+    assert_equal Membership::COLORS, JSON.parse(response.body).fetch("colors")
+    assert_equal Membership::COLORS.uniq.size, Membership::COLORS.size
   end
 
   test "shows another member of the coloc" do
@@ -87,6 +90,20 @@ class ProfilesTest < ActionDispatch::IntegrationTest
     assert_equal "Ada", guest.reload.first_name
   end
 
+  test "assigns a different color to each member and rejects a duplicate" do
+    guest = create_user("guest@coloc.test", first_name: "Grace")
+    @coloc.add_member(guest)
+    owner_color = @coloc.memberships.find_by!(user: @owner).color
+    guest_color = @coloc.memberships.find_by!(user: guest).color
+    assert_not_equal owner_color, guest_color
+
+    patch api_coloc_profile_path(@coloc, @owner), params: profile_fields(color: guest_color), as: :json
+
+    assert_response :unprocessable_entity
+    assert_includes JSON.parse(response.body).fetch("errors").join, "couleur"
+    assert_equal owner_color, @coloc.memberships.find_by!(user: @owner).reload.color
+  end
+
   test "rejects an arrival date in the future" do
     patch api_coloc_profile_path(@coloc, @owner),
       params: profile_fields(arrived_on: Date.tomorrow.to_s),
@@ -130,7 +147,7 @@ class ProfilesTest < ActionDispatch::IntegrationTest
       Coloc.find(JSON.parse(response.body).dig("coloc", "id"))
     end
 
-    def profile_fields(avatar: nil, remove_avatar: false, arrived_on: "2020-05-01", first_name: "Augusta")
+    def profile_fields(avatar: nil, remove_avatar: false, arrived_on: "2020-05-01", first_name: "Augusta", color: nil)
       fields = {
         first_name: first_name,
         last_name: "King",
@@ -140,6 +157,7 @@ class ProfilesTest < ActionDispatch::IntegrationTest
         date_of_birth: "1815-12-10",
         arrived_on: arrived_on
       }
+      fields[:color] = color if color
       fields[:avatar] = avatar if avatar
       fields[:remove_avatar] = true if remove_avatar
       fields

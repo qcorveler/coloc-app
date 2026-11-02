@@ -1,5 +1,5 @@
 class Event < ApplicationRecord
-  RECURRENCES = %w[none daily weekly monthly].freeze
+  RECURRENCES = %w[none daily weekly biweekly monthly].freeze
 
   belongs_to :coloc
   belongs_to :created_by, class_name: "User", optional: true
@@ -42,10 +42,15 @@ class Event < ApplicationRecord
     case recurrence
     when "none" then date == starts_at.to_date
     when "daily" then true
-    when "weekly" then weekdays.to_i.anybits?(self.class.bit_for(date.cwday))
+    when "weekly" then weekday_match?(date)
+    when "biweekly" then weekday_match?(date) && ((date - starts_at.to_date).to_i / 7).even?
     when "monthly" then date.day == starts_at.to_date.day
     else false
     end
+  end
+
+  def weekday_match?(date)
+    weekdays.to_i.anybits?(self.class.bit_for(date.cwday))
   end
 
   def occurrence_dates(from, to)
@@ -111,14 +116,14 @@ class Event < ApplicationRecord
   end
 
   def weekly_days_present
-    return unless recurrence == "weekly"
+    return unless weekly_span?
     return if weekdays.to_i.positive?
 
     errors.add(:weekdays, "doivent indiquer au moins un jour")
   end
 
   def weekly_includes_start
-    return unless recurrence == "weekly" && starts_at.present?
+    return unless weekly_span? && starts_at.present?
     return if weekdays.to_i.anybits?(self.class.bit_for(starts_at.to_date.cwday))
 
     errors.add(:weekdays, "doivent inclure le jour de début")
@@ -138,6 +143,10 @@ class Event < ApplicationRecord
     return if replaces_event.nil? || replaces_event.coloc_id == coloc_id
 
     errors.add(:replaces_event, "appartient à une autre coloc")
+  end
+
+  def weekly_span?
+    recurrence.in?(%w[weekly biweekly])
   end
 
   def clock_on(time, date)

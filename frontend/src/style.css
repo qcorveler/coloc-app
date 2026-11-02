@@ -8,6 +8,14 @@ body {
   text-transform: none;
 }
 
+.column.q-gutter-xs > .q-btn,
+.column.q-gutter-sm > .q-btn,
+.column.q-gutter-md > .q-btn,
+.column.q-gutter-lg > .q-btn,
+.column.q-gutter-xl > .q-btn {
+  align-self: stretch;
+}
+
 .page {
   width: min(100%, 420px);
   margin-inline: auto;
@@ -99,6 +107,32 @@ body {
   display: none;
 }
 
+.color-swatch {
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  border: 2px solid transparent;
+  border-radius: 50%;
+  cursor: pointer;
+}
+
+.color-swatch.selected {
+  outline: 2px solid currentColor;
+  outline-offset: 2px;
+}
+
+.color-swatch:disabled {
+  opacity: 0.28;
+  cursor: not-allowed;
+}
+
+.color-dot {
+  display: inline-block;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+}
+
 body.body--dark .banner-fallback {
   background: color-mix(in srgb, var(--q-primary) 32%, #16171d);
   color: #fff;
@@ -161,7 +195,6 @@ body.body--dark .banner-fallback {
 }
 
 .calendar-stage {
-  touch-action: pan-y;
   overflow: hidden;
 }
 
@@ -193,6 +226,11 @@ body.body--dark .banner-fallback {
     transform: none;
     opacity: 1;
   }
+}
+
+.planning-dialog .q-dialog__inner {
+  max-height: 100svh;
+  overflow: hidden;
 }
 
 .sheet-card {
@@ -278,6 +316,14 @@ body.body--dark .calendar {
   border-top: 1px solid var(--grid-line);
   border-left: 1px solid var(--grid-line);
   cursor: pointer;
+}
+
+.week-row > .day-cell:nth-child(7) {
+  border-right: 1px solid var(--grid-line);
+}
+
+.month > .week-row:last-child > .day-cell {
+  border-bottom: 1px solid var(--grid-line);
 }
 
 .day-cell.outside,
@@ -398,7 +444,6 @@ body.body--dark .calendar {
 
 .time-scroll {
   overflow-x: hidden;
-  touch-action: pan-y;
 }
 
 .time-grid {
@@ -422,6 +467,10 @@ body.body--dark .calendar {
   font-size: 11px;
 }
 
+.all-day {
+  border-bottom: 1px solid var(--grid-line);
+}
+
 .all-day-cell {
   display: flex;
   flex-direction: column;
@@ -432,13 +481,19 @@ body.body--dark .calendar {
   border-left: 1px solid var(--grid-line);
 }
 
+.all-day-cell:last-child {
+  border-right: 1px solid var(--grid-line);
+}
+
 .hour-pane {
   max-height: 55svh;
   overflow: auto;
+  touch-action: pan-y;
 }
 
 .hour-body {
   height: 1152px;
+  border-bottom: 1px solid var(--grid-line);
 }
 
 .hour-label {
@@ -458,5 +513,9 @@ body.body--dark .calendar {
     transparent 1px,
     transparent 48px
   );
+}
+
+.day-col:last-child {
+  border-right: 1px solid var(--grid-line);
 }
 

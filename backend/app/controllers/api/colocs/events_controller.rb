@@ -90,7 +90,7 @@ module Api
             starts_at: parse_time(params[:starts_at], all_day:, finish: false),
             ends_at: parse_time(params[:ends_at], all_day:, finish: true),
             recurrence:,
-            weekdays: recurrence == "weekly" ? weekday_mask : 0,
+            weekdays: %w[weekly biweekly].include?(recurrence) ? weekday_mask : 0,
             until_on: parse_until
           }
         end

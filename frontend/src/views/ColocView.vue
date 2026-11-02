@@ -57,6 +57,9 @@ function memberCaption(count: number) {
             </q-avatar>
           </q-item-section>
           <q-item-section>{{ member.first_name }} {{ member.last_name }}</q-item-section>
+          <q-item-section v-if="member.color" side>
+            <span class="color-dot" :style="{ background: member.color }" aria-hidden="true" />
+          </q-item-section>
         </q-item>
       </q-list>
     </template>

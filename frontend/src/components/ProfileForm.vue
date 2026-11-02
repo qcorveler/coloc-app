@@ -12,6 +12,9 @@ const props = defineProps<{
   dateOfBirth: string
   arrivedOn: string
   avatarUrl?: string | null
+  color: string
+  colors: string[]
+  takenColors: string[]
   submitLabel: string
   submitting: boolean
 }>()
@@ -32,6 +35,7 @@ const description = ref(props.description ?? '')
 const mood = ref(props.mood ?? '')
 const dateOfBirth = ref(props.dateOfBirth)
 const arrivedOn = ref(props.arrivedOn)
+const color = ref(props.color)
 const pronounChoice = ref<string | null>(pronounMode(props.pronouns))
 const customPronouns = ref(props.pronouns && props.pronouns !== 'il' && props.pronouns !== 'elle' ? props.pronouns : '')
 const avatar = ref<File | null>(null)
@@ -48,7 +52,7 @@ const previewUrl = computed(() => {
 })
 
 watch(
-  () => [props.firstName, props.lastName, props.description, props.mood, props.pronouns, props.dateOfBirth, props.arrivedOn],
+  () => [props.firstName, props.lastName, props.description, props.mood, props.pronouns, props.dateOfBirth, props.arrivedOn, props.color],
   () => {
     firstName.value = props.firstName
     lastName.value = props.lastName
@@ -56,6 +60,7 @@ watch(
     mood.value = props.mood ?? ''
     dateOfBirth.value = props.dateOfBirth
     arrivedOn.value = props.arrivedOn
+    color.value = props.color
     pronounChoice.value = pronounMode(props.pronouns)
     customPronouns.value = props.pronouns && props.pronouns !== 'il' && props.pronouns !== 'elle' ? props.pronouns : ''
   },
@@ -114,6 +119,7 @@ function onSubmit() {
     pronouns: pronounsValue(),
     date_of_birth: dateOfBirth.value,
     arrived_on: arrivedOn.value,
+    color: color.value,
     avatar: avatar.value,
     removeAvatar: removeAvatar.value,
   })
@@ -139,6 +145,23 @@ function onSubmit() {
     <q-input v-model="lastName" label="Nom" outlined maxlength="80" lazy-rules :rules="[requiredRule]" />
     <q-input v-model="description" type="textarea" label="Description" outlined autogrow maxlength="500" />
     <q-input v-model="mood" label="Humeur" outlined maxlength="40" />
+    <div>
+      <div class="q-mb-xs">Couleur</div>
+      <div class="row q-gutter-xs">
+        <button
+          v-for="swatch in colors"
+          :key="swatch"
+          type="button"
+          class="color-swatch"
+          :class="{ selected: color === swatch }"
+          :style="{ background: swatch }"
+          :disabled="takenColors.includes(swatch)"
+          :aria-label="`Couleur ${swatch}`"
+          :aria-pressed="color === swatch"
+          @click="color = swatch"
+        />
+      </div>
+    </div>
     <div>
       <div class="q-mb-xs">Pronoms</div>
       <q-option-group v-model="pronounChoice" :options="pronounOptions" inline color="primary" />
@@ -171,6 +194,6 @@ function onSubmit() {
       lazy-rules
       :rules="[requiredRule]"
     />
-    <q-btn type="submit" color="primary" unelevated no-caps class="full-width" :label="submitLabel" :loading="submitting" />
+    <q-btn type="submit" color="primary" unelevated no-caps :label="submitLabel" :loading="submitting" />
   </q-form>
 </template>

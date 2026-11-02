@@ -30,7 +30,7 @@ const rows = computed(() => {
       key: `rotation-${rotation.id}-${rotation.starts_on}`,
       when: 'Journée',
       label: `${rotation.title} · ${rotation.user.first_name}`,
-      color: memberColor(rotation.user.id),
+      color: memberColor(rotation.user.id, rotation.user.color),
       event: null,
       rotation,
     }))
@@ -41,7 +41,7 @@ const rows = computed(() => {
       key: `event-${event.id}-${event.occurrence_on}`,
       when: 'Journée',
       label: event.title,
-      color: '',
+      color: event.color || '',
       event,
       rotation: null,
     }))
@@ -54,7 +54,7 @@ const rows = computed(() => {
       key: `event-${event.id}-${event.occurrence_on}`,
       when: `${clock(event.starts_at)} – ${clock(event.ends_at)}`,
       label: event.title,
-      color: '',
+      color: event.color || '',
       event,
       rotation: null,
     }))

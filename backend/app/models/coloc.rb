@@ -50,7 +50,8 @@ class Coloc < ApplicationRecord
           id: user.id,
           first_name: user.first_name,
           last_name: user.last_name,
-          avatar_url: user.avatar_url(host)
+          avatar_url: user.avatar_url(host),
+          color: member_colors[user.id]
         }
       }
     )
@@ -68,6 +69,10 @@ class Coloc < ApplicationRecord
     description: "La description",
     photo: "La photo"
   }.freeze
+
+  def member_colors
+    memberships.pluck(:user_id, :color).to_h
+  end
 
   def acceptable_photo
     return unless photo.attached?

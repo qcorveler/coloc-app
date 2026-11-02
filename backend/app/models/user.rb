@@ -50,7 +50,7 @@ class User < ApplicationRecord
     )
   end
 
-  def profile_json(host:, arrived_on:)
+  def profile_json(host:, arrived_on:, color:)
     {
       id:,
       first_name:,
@@ -60,6 +60,7 @@ class User < ApplicationRecord
       pronouns:,
       date_of_birth:,
       arrived_on:,
+      color:,
       avatar_url: avatar_url(host)
     }
   end

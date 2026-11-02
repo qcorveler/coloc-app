@@ -62,12 +62,20 @@ module Calendar
           series_ends_at: event.ends_at.iso8601,
           series_title: event.title,
           series_notes: event.notes,
-          series_all_day: event.all_day
+          series_all_day: event.all_day,
+          color: membership_colors[source.created_by_id]
         }
       end
 
       def rotation_rows
-        @coloc.rotations.includes(rotation_members: :user).flat_map { |rotation| rotation.slots_between(@from, @to) }
+        colors = membership_colors
+        @coloc.rotations.includes(rotation_members: :user).flat_map { |rotation|
+          rotation.slots_between(@from, @to, colors:)
+        }
+      end
+
+      def membership_colors
+        @membership_colors ||= @coloc.memberships.pluck(:user_id, :color).to_h
       end
 
       def overlaps?(starts_at, ends_at)

@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue'
 import {
+  eventFill,
   intervalOnDay,
   memberColor,
   type CalendarEvent,
@@ -44,7 +45,7 @@ function multiDaySources(): Bar[] {
     .map((rotation): Bar => ({
       key: `rotation-${rotation.id}-${rotation.starts_on}`,
       label: `${rotation.title} · ${rotation.user.first_name}`,
-      color: memberColor(rotation.user.id),
+      color: memberColor(rotation.user.id, rotation.user.color),
       start: rotation.starts_on,
       end: rotation.ends_on,
       event: null,
@@ -59,7 +60,7 @@ function multiDaySources(): Bar[] {
     return [{
       key: `event-${event.id}-${event.occurrence_on}`,
       label,
-      color: '',
+      color: eventFill(event.color),
       start: bounds.start,
       end: bounds.end,
       event,
@@ -128,13 +129,14 @@ function layout(items: { event: CalendarEvent; start: number; end: number }[]) {
   })
 }
 
-function blockStyle(item: { start: number; end: number; column: number; columns: number }) {
+function blockStyle(item: { event: CalendarEvent; start: number; end: number; column: number; columns: number }) {
   const width = 100 / item.columns
   return {
     top: `${(item.start / 60) * HOUR_HEIGHT}px`,
     height: `${Math.max(((item.end - item.start) / 60) * HOUR_HEIGHT, 22)}px`,
     left: `calc(${item.column * width}% + 2px)`,
     width: `calc(${width}% - 4px)`,
+    background: item.event.color || undefined,
   }
 }
 
@@ -197,6 +199,7 @@ function openBar(bar: Bar) {
                 :key="`${event.id}-${event.occurrence_on}`"
                 type="button"
                 class="chip"
+                :style="event.color ? { background: eventFill(event.color) } : undefined"
                 :title="event.title"
                 @click="emit('openEvent', event)"
               >
@@ -207,7 +210,7 @@ function openBar(bar: Bar) {
                 :key="`${rotation.id}-${rotation.starts_on}`"
                 type="button"
                 class="chip rotation"
-                :style="{ background: memberColor(rotation.user.id) }"
+                :style="{ background: memberColor(rotation.user.id, rotation.user.color) }"
                 :title="`${rotation.title} · ${rotation.user.first_name}`"
                 @click="emit('openRotation', rotation)"
               >

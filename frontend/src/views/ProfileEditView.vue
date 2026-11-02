@@ -5,12 +5,12 @@ import { useRoute, useRouter } from 'vue-router'
 import ProfileForm from '../components/ProfileForm.vue'
 import { useAuth } from '../composables/useAuth'
 import { ApiError } from '../lib/api'
-import { fetchProfile, saveProfile, type Profile, type ProfileFields } from '../lib/profiles'
+import { fetchProfile, saveProfile, type ProfileFields, type ProfilePage } from '../lib/profiles'
 
 const route = useRoute()
 const router = useRouter()
 const { user, updateUser } = useAuth()
-const profile = ref<Profile | null>(null)
+const page = ref<ProfilePage | null>(null)
 const errors = ref<string[]>([])
 const loading = ref(true)
 const submitting = ref(false)
@@ -22,7 +22,7 @@ async function load() {
   loading.value = true
   errors.value = []
   try {
-    profile.value = await fetchProfile(String(route.params.id), user.value.id)
+    page.value = await fetchProfile(String(route.params.id), user.value.id)
   } catch (error) {
     errors.value = error instanceof ApiError ? error.errors : ['Impossible de charger le profil']
   } finally {
@@ -69,15 +69,18 @@ async function onSubmit(fields: ProfileFields) {
       <q-spinner color="primary" size="32px" />
     </div>
     <ProfileForm
-      v-else-if="profile"
-      :first-name="profile.first_name"
-      :last-name="profile.last_name"
-      :description="profile.description"
-      :mood="profile.mood"
-      :pronouns="profile.pronouns"
-      :date-of-birth="profile.date_of_birth"
-      :arrived-on="profile.arrived_on"
-      :avatar-url="profile.avatar_url"
+      v-else-if="page"
+      :first-name="page.profile.first_name"
+      :last-name="page.profile.last_name"
+      :description="page.profile.description"
+      :mood="page.profile.mood"
+      :pronouns="page.profile.pronouns"
+      :date-of-birth="page.profile.date_of_birth"
+      :arrived-on="page.profile.arrived_on"
+      :avatar-url="page.profile.avatar_url"
+      :color="page.profile.color"
+      :colors="page.colors"
+      :taken-colors="page.taken_colors"
       submit-label="Enregistrer"
       :submitting="submitting"
       @submit="onSubmit"
