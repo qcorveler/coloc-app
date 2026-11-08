@@ -101,9 +101,14 @@ export function intervalOnDay(startsAt: string, endsAt: string, day: string) {
   return { start, end }
 }
 
-export async function fetchCalendar(colocId: number | string, from: string, to: string) {
+export async function fetchCalendar(
+  colocId: number | string,
+  from: string,
+  to: string,
+  signal?: AbortSignal,
+) {
   const params = new URLSearchParams({ from, to })
-  return api<CalendarPayload>(`/api/colocs/${colocId}/calendar?${params}`)
+  return api<CalendarPayload>(`/api/colocs/${colocId}/calendar?${params}`, { signal })
 }
 
 export async function saveEvent(

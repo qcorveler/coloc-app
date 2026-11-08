@@ -78,31 +78,39 @@ const weeks = computed(() => {
   })
 })
 
-function chips(day: string): Chip[] {
-  const rotations = props.rotations
-    .filter((rotation) => rotation.starts_on === day && rotation.ends_on === day)
-    .map((rotation): Chip => ({
+const chipsByDay = computed(() => {
+  const grouped = new Map<string, Chip[]>()
+  for (const day of props.days) grouped.set(day, [])
+  for (const rotation of props.rotations) {
+    if (rotation.starts_on !== rotation.ends_on) continue
+    grouped.get(rotation.starts_on)?.push({
       key: `rotation-${rotation.id}-${rotation.starts_on}`,
       label: `${rotation.title} · ${rotation.user.first_name}`,
       color: memberColor(rotation.user.id, rotation.user.color),
       event: null,
       rotation,
-    }))
-  const events = props.events
-    .filter((event) => {
-      const bounds = eventBounds(event)
-      return bounds.start === day && bounds.end === day
     })
-    .slice()
-    .sort((a, b) => a.starts_at.localeCompare(b.starts_at))
-    .map((event): Chip => ({
+  }
+  const singles = props.events
+    .flatMap((event) => {
+      const bounds = eventBounds(event)
+      return bounds.start === bounds.end ? [{ event, day: bounds.start }] : []
+    })
+    .sort((a, b) => a.event.starts_at.localeCompare(b.event.starts_at))
+  for (const { event, day } of singles) {
+    grouped.get(day)?.push({
       key: `event-${event.id}-${event.occurrence_on}`,
       label: event.all_day ? event.title : `${clock(event.starts_at)} ${event.title}`,
       color: eventFill(event.color),
       event,
       rotation: null,
-    }))
-  return [...rotations, ...events]
+    })
+  }
+  return grouped
+})
+
+function chips(day: string) {
+  return chipsByDay.value.get(day) ?? []
 }
 
 function openChip(chip: Chip) {

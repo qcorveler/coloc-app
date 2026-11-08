@@ -38,7 +38,12 @@ const route = useRoute()
 const { user } = useAuth()
 const colocId = computed(() => String(route.params.id))
 const coloc = ref<Coloc | null>(null)
-const payload = ref<CalendarPayload>({ events: [], rotations: [] })
+const emptyPayload: CalendarPayload = { events: [], rotations: [] }
+const payload = ref<CalendarPayload>(emptyPayload)
+const shownKey = ref('')
+const calendarCache = new Map<string, CalendarPayload>()
+let requestId = 0
+let activeRequest: AbortController | null = null
 const mode = ref<'month' | 'week' | 'day'>('month')
 const modeOptions = [
   { label: 'Mois', value: 'month' },
@@ -61,17 +66,10 @@ const slideClass = ref('')
 const addMenu = ref<{ hide: () => void } | null>(null)
 let swipe: { x: number; y: number; dx: number; dy: number; horizontal: boolean } | null = null
 
-const range = computed(() => {
-  if (mode.value === 'month') {
-    const days = monthGrid(cursor.value)
-    return { from: days[0], to: days[days.length - 1] }
-  }
-  if (mode.value === 'week') {
-    const days = weekDates(cursor.value)
-    return { from: days[0], to: days[6] }
-  }
-  return { from: cursor.value, to: cursor.value }
-})
+const range = computed(() => periodRange(cursor.value, mode.value))
+const currentKey = computed(() => cacheKey(colocId.value, range.value.from, range.value.to))
+const visiblePayload = computed(() => (shownKey.value === currentKey.value ? payload.value : emptyPayload))
+const periodReady = computed(() => shownKey.value === currentKey.value)
 
 const heading = computed(() => {
   if (mode.value === 'month') return formatMonth(cursor.value)
@@ -96,7 +94,11 @@ const formKey = computed(() => {
 })
 
 watch(colocId, loadColoc, { immediate: true })
-watch([colocId, () => range.value.from, () => range.value.to], loadCalendar, { immediate: true })
+watch([colocId, () => range.value.from, () => range.value.to], () => {
+  void loadCalendar()
+}, { immediate: true })
+
+onUnmounted(() => activeRequest?.abort())
 
 async function loadColoc() {
   try {
@@ -106,15 +108,102 @@ async function loadColoc() {
   }
 }
 
+function periodRange(cursorValue: string, period: 'month' | 'week' | 'day') {
+  if (period === 'month') {
+    const days = monthGrid(cursorValue)
+    return { from: days[0], to: days[days.length - 1] }
+  }
+  if (period === 'week') {
+    const days = weekDates(cursorValue)
+    return { from: days[0], to: days[6] }
+  }
+  return { from: cursorValue, to: cursorValue }
+}
+
+function cacheKey(id: string, from: string, to: string) {
+  return `${id}:${from}:${to}`
+}
+
+function shiftedCursor(cursorValue: string, period: 'month' | 'week' | 'day', direction: number) {
+  if (period === 'month') return addMonths(cursorValue, direction)
+  if (period === 'week') return addDays(cursorValue, direction * 7)
+  return addDays(cursorValue, direction)
+}
+
+function remember(key: string, data: CalendarPayload) {
+  calendarCache.delete(key)
+  calendarCache.set(key, data)
+  while (calendarCache.size > 18) {
+    const oldest = calendarCache.keys().next().value
+    if (oldest === undefined) break
+    calendarCache.delete(oldest)
+  }
+}
+
+function showPeriod(key: string, data: CalendarPayload) {
+  payload.value = data
+  shownKey.value = key
+  errors.value = []
+  loading.value = false
+}
+
+function isAbort(error: unknown) {
+  return error instanceof Error && error.name === 'AbortError'
+}
+
 async function loadCalendar() {
+  const id = colocId.value
+  const { from, to } = range.value
+  const key = cacheKey(id, from, to)
+  const cached = calendarCache.get(key)
+  const seq = ++requestId
+  activeRequest?.abort()
+  activeRequest = null
+  if (cached) {
+    showPeriod(key, cached)
+    void prefetchAround(id)
+    return
+  }
+
+  const controller = new AbortController()
+  activeRequest = controller
   loading.value = true
+  errors.value = []
   try {
-    payload.value = await fetchCalendar(colocId.value, range.value.from, range.value.to)
+    const next = await fetchCalendar(id, from, to, controller.signal)
+    if (seq !== requestId) return
+    remember(key, next)
+    showPeriod(key, next)
+    void prefetchAround(id)
   } catch (error) {
+    if (seq !== requestId || isAbort(error)) return
     errors.value = error instanceof ApiError ? error.errors : ['Impossible de charger le planning']
   } finally {
-    loading.value = false
+    if (seq === requestId) loading.value = false
   }
+}
+
+async function reloadCalendar() {
+  calendarCache.clear()
+  await loadCalendar()
+}
+
+async function prefetchAround(id: string) {
+  const period = mode.value
+  const origin = cursor.value
+  await Promise.all([-1, 1].map(async (direction) => {
+    if (id !== colocId.value) return
+    const nextCursor = shiftedCursor(origin, period, direction)
+    const next = periodRange(nextCursor, period)
+    const key = cacheKey(id, next.from, next.to)
+    if (calendarCache.has(key)) return
+    try {
+      const data = await fetchCalendar(id, next.from, next.to)
+      if (id === colocId.value) remember(key, data)
+    } catch {
+      // Une période voisine peut échouer sans empêcher celle qui est affichée.
+    }
+  }))
 }
 
 function setMode(value: string | number | null) {
@@ -126,9 +215,7 @@ function closePanel(open: boolean) {
 }
 
 function shift(direction: number) {
-  if (mode.value === 'month') cursor.value = addMonths(cursor.value, direction)
-  else if (mode.value === 'week') cursor.value = addDays(cursor.value, direction * 7)
-  else cursor.value = addDays(cursor.value, direction)
+  cursor.value = shiftedCursor(cursor.value, mode.value, direction)
   slideClass.value = ''
   requestAnimationFrame(() => {
     slideClass.value = direction > 0 ? 'slide-next' : 'slide-prev'
@@ -263,7 +350,7 @@ async function toggleReminder(event: CalendarEvent) {
 
 async function onSaved() {
   panel.value = null
-  await loadCalendar()
+  await reloadCalendar()
 }
 
 async function removeEvent(event: CalendarEvent, occurrence?: string) {
@@ -276,7 +363,7 @@ async function removeEvent(event: CalendarEvent, occurrence?: string) {
   try {
     await deleteEvent(colocId.value, event.id, occurrence)
     panel.value = null
-    await loadCalendar()
+    await reloadCalendar()
   } catch (error) {
     errors.value = error instanceof ApiError ? error.errors : ['Impossible de supprimer l’événement']
   }
@@ -287,7 +374,7 @@ async function removeRotation(rotation: RotationWeek) {
   try {
     await deleteRotation(colocId.value, rotation.id)
     panel.value = null
-    await loadCalendar()
+    await reloadCalendar()
   } catch (error) {
     errors.value = error instanceof ApiError ? error.errors : ['Impossible de supprimer le tour']
   }
@@ -363,15 +450,15 @@ function recurrenceLabel(event: CalendarEvent) {
       </q-btn>
     </div>
     <div class="calendar-stage" :class="slideClass">
-      <div v-if="loading" class="row justify-center q-pa-md">
-        <q-spinner color="primary" size="32px" />
+      <div v-if="loading && !periodReady" class="row justify-center q-pb-sm">
+        <q-spinner color="primary" size="24px" />
       </div>
       <MonthGrid
-        v-else-if="mode === 'month'"
+        v-if="mode === 'month'"
         :month="cursor.slice(0, 7)"
         :days="visibleDays"
-        :events="payload.events"
-        :rotations="payload.rotations"
+        :events="visiblePayload.events"
+        :rotations="visiblePayload.rotations"
         @open-day="openDay"
         @open-event="openEvent"
         @open-rotation="openRotation"
@@ -379,16 +466,16 @@ function recurrenceLabel(event: CalendarEvent) {
       <DayAgenda
         v-else-if="mode === 'day'"
         :day="cursor"
-        :events="payload.events"
-        :rotations="payload.rotations"
+        :events="visiblePayload.events"
+        :rotations="visiblePayload.rotations"
         @open-event="openEvent"
         @open-rotation="openRotation"
       />
       <TimeGrid
         v-else
         :days="visibleDays"
-        :events="payload.events"
-        :rotations="payload.rotations"
+        :events="visiblePayload.events"
+        :rotations="visiblePayload.rotations"
         @open-day="openDay"
         @open-event="openEvent"
         @open-rotation="openRotation"
