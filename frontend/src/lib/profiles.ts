@@ -15,7 +15,6 @@ export type Profile = {
 
 export type ProfilePage = {
   profile: Profile
-  colors: string[]
   taken_colors: string[]
 }
 

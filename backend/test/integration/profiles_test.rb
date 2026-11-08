@@ -24,7 +24,7 @@ class ProfilesTest < ActionDispatch::IntegrationTest
     assert_nil profile.fetch("avatar_url")
     assert_equal Membership::COLORS.first, profile.fetch("color")
     assert_not profile.key?("email")
-    assert_equal Membership::COLORS, JSON.parse(response.body).fetch("colors")
+    assert_equal [], JSON.parse(response.body).fetch("taken_colors")
     assert_equal Membership::COLORS.uniq.size, Membership::COLORS.size
   end
 
@@ -88,6 +88,23 @@ class ProfilesTest < ActionDispatch::IntegrationTest
 
     assert_response :forbidden
     assert_equal "Ada", guest.reload.first_name
+  end
+
+  test "accepts any HTML color and stores it in lowercase" do
+    patch api_coloc_profile_path(@coloc, @owner), params: profile_fields(color: "#AbC"), as: :json
+
+    assert_response :success
+    assert_equal "#aabbcc", JSON.parse(response.body).dig("profile", "color")
+  end
+
+  test "rejects a color that is not HTML" do
+    previous = @coloc.memberships.find_by!(user: @owner).color
+
+    patch api_coloc_profile_path(@coloc, @owner), params: profile_fields(color: "bleu"), as: :json
+
+    assert_response :unprocessable_entity
+    assert_includes JSON.parse(response.body).fetch("errors").join, "couleur"
+    assert_equal previous, @coloc.memberships.find_by!(user: @owner).reload.color
   end
 
   test "assigns a different color to each member and rejects a duplicate" do

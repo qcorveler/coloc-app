@@ -9,6 +9,7 @@ declare module 'vue' {
     QCard: typeof import('quasar')['QCard']
     QCheckbox: typeof import('quasar')['QCheckbox']
     QDialog: typeof import('quasar')['QDialog']
+    QField: typeof import('quasar')['QField']
     QFile: typeof import('quasar')['QFile']
     QForm: typeof import('quasar')['QForm']
     QImg: typeof import('quasar')['QImg']

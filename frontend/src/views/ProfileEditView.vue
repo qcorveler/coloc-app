@@ -79,7 +79,6 @@ async function onSubmit(fields: ProfileFields) {
       :arrived-on="page.profile.arrived_on"
       :avatar-url="page.profile.avatar_url"
       :color="page.profile.color"
-      :colors="page.colors"
       :taken-colors="page.taken_colors"
       submit-label="Enregistrer"
       :submitting="submitting"

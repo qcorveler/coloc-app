@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, ref, watch } from 'vue'
+import ColorPicker from './ColorPicker.vue'
 import { addDays, todayIso } from '../lib/dates'
 import type { ProfileFields } from '../lib/profiles'
 
@@ -13,7 +14,6 @@ const props = defineProps<{
   arrivedOn: string
   avatarUrl?: string | null
   color: string
-  colors: string[]
   takenColors: string[]
   submitLabel: string
   submitting: boolean
@@ -145,23 +145,7 @@ function onSubmit() {
     <q-input v-model="lastName" label="Nom" outlined maxlength="80" lazy-rules :rules="[requiredRule]" />
     <q-input v-model="description" type="textarea" label="Description" outlined autogrow maxlength="500" />
     <q-input v-model="mood" label="Humeur" outlined maxlength="40" />
-    <div>
-      <div class="q-mb-xs">Couleur</div>
-      <div class="row q-gutter-xs">
-        <button
-          v-for="swatch in colors"
-          :key="swatch"
-          type="button"
-          class="color-swatch"
-          :class="{ selected: color === swatch }"
-          :style="{ background: swatch }"
-          :disabled="takenColors.includes(swatch)"
-          :aria-label="`Couleur ${swatch}`"
-          :aria-pressed="color === swatch"
-          @click="color = swatch"
-        />
-      </div>
-    </div>
+    <ColorPicker v-model="color" :taken-colors="takenColors" />
     <div>
       <div class="q-mb-xs">Pronoms</div>
       <q-option-group v-model="pronounChoice" :options="pronounOptions" inline color="primary" />

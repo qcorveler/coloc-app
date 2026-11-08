@@ -17,7 +17,7 @@ class Coloc < ApplicationRecord
   validates :address, presence: { message: "est obligatoire" }
   validate :acceptable_photo
 
-  def add_member(user)
+  def add_member(user, color: nil, choose_color: false)
     with_lock do
       existing = memberships.find_by(user: user)
       return existing if existing
@@ -27,7 +27,16 @@ class Coloc < ApplicationRecord
         return nil
       end
 
-      memberships.create!(user: user, arrived_on: Date.current)
+      if choose_color && color.blank?
+        errors.add(:base, "La couleur est obligatoire")
+        return nil
+      end
+
+      membership = memberships.build(user: user, arrived_on: Date.current, color: color.presence)
+      return membership if membership.save
+
+      membership.errors.full_messages.each { |message| errors.add(:base, message) }
+      nil
     end
   end
 

@@ -1,19 +1,26 @@
 <script setup lang="ts">
 import { onMounted, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
+import ColorPicker from '../components/ColorPicker.vue'
 import { ApiError } from '../lib/api'
+import { suggestColor } from '../lib/colors'
 import { fetchInvitation, initial, joinColoc, type ColocSummary } from '../lib/colocs'
 
 const route = useRoute()
 const router = useRouter()
 const coloc = ref<ColocSummary | null>(null)
+const takenColors = ref<string[]>([])
+const color = ref('#5c6bc0')
 const errors = ref<string[]>([])
 const loading = ref(true)
 const submitting = ref(false)
 
 onMounted(async () => {
   try {
-    coloc.value = await fetchInvitation(String(route.params.token))
+    const preview = await fetchInvitation(String(route.params.token))
+    coloc.value = preview.coloc
+    takenColors.value = preview.taken_colors
+    color.value = suggestColor(preview.taken_colors)
   } catch (error) {
     errors.value = error instanceof ApiError ? error.errors : ['Cette invitation est introuvable']
   } finally {
@@ -25,7 +32,7 @@ async function join() {
   errors.value = []
   submitting.value = true
   try {
-    const joined = await joinColoc(String(route.params.token))
+    const joined = await joinColoc(String(route.params.token), color.value)
     await router.push(`/colocs/${joined.id}`)
   } catch (error) {
     errors.value = error instanceof ApiError ? error.errors : ['Impossible de rejoindre la coloc']
@@ -46,7 +53,10 @@ async function join() {
       <h1 class="text-h4 q-mt-md q-mb-sm">{{ coloc.name }}</h1>
       <p class="muted">{{ coloc.address }}</p>
       <p class="q-my-md">{{ coloc.member_count }} / 30 personnes</p>
-      <q-btn color="primary" unelevated no-caps class="full-width" label="Rejoindre" :loading="submitting" @click="join" />
+      <q-form class="column q-gutter-md" @submit.prevent="join">
+        <ColorPicker v-model="color" :taken-colors="takenColors" />
+        <q-btn type="submit" color="primary" unelevated no-caps class="full-width" label="Rejoindre" :loading="submitting" />
+      </q-form>
     </template>
     <q-banner v-if="errors.length" class="bg-negative text-white q-mt-md" rounded>
       <div v-for="(message, index) in errors" :key="index">{{ message }}</div>

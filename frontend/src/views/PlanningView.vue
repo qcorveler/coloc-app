@@ -136,7 +136,11 @@ function shift(direction: number) {
 }
 
 function swipeTargetIgnored(target: EventTarget | null) {
-  return target instanceof Element && Boolean(target.closest('button, a, input, textarea, select, label, .q-btn, .q-field, .q-dialog, .q-menu'))
+  if (!(target instanceof Element)) return false
+  if (target.closest('.q-dialog, .q-menu, input, textarea, select, .q-field')) return true
+  const control = target.closest('button, a, label, .q-btn')
+  if (!control) return false
+  return !control.closest('.calendar')
 }
 
 function onPointerDown(event: PointerEvent) {

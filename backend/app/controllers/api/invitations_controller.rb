@@ -3,11 +3,14 @@ module Api
     before_action :set_coloc
 
     def show
-      render json: { coloc: @coloc.summary(host: request.base_url) }
+      render json: {
+        coloc: @coloc.summary(host: request.base_url),
+        taken_colors: @coloc.memberships.pluck(:color)
+      }
     end
 
     def create
-      membership = @coloc.add_member(Current.user)
+      membership = @coloc.add_member(Current.user, color: params[:color], choose_color: true)
 
       if membership.nil?
         render json: { errors: @coloc.errors.full_messages }, status: :unprocessable_entity

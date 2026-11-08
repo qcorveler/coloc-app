@@ -52,7 +52,6 @@ module Api
               arrived_on: membership.arrived_on,
               color: membership.color
             ),
-            colors: Membership::COLORS,
             taken_colors: @coloc.memberships.where.not(user_id: membership.user_id).pluck(:color)
           }
         end

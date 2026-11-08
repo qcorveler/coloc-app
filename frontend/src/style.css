@@ -107,23 +107,27 @@ body {
   display: none;
 }
 
-.color-swatch {
-  width: 28px;
-  height: 28px;
+.color-input {
+  width: 44px;
+  height: 44px;
   padding: 0;
-  border: 2px solid transparent;
-  border-radius: 50%;
+  border: 0;
+  background: transparent;
   cursor: pointer;
 }
 
-.color-swatch.selected {
-  outline: 2px solid currentColor;
-  outline-offset: 2px;
+.color-input::-webkit-color-swatch-wrapper {
+  padding: 0;
 }
 
-.color-swatch:disabled {
-  opacity: 0.28;
-  cursor: not-allowed;
+.color-input::-webkit-color-swatch,
+.color-input::-moz-color-swatch {
+  border: 1px solid rgba(0, 0, 0, 0.2);
+  border-radius: 50%;
+}
+
+.color-code {
+  font-variant-numeric: tabular-nums;
 }
 
 .color-dot {
@@ -259,6 +263,7 @@ body.body--dark .banner-fallback {
 .calendar {
   --grid-line: rgba(0, 0, 0, 0.12);
   --grid-muted: rgba(0, 0, 0, 0.62);
+  touch-action: pan-y;
 }
 
 body.body--dark .calendar {

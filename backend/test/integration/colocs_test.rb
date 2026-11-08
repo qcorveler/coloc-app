@@ -83,17 +83,38 @@ class ColocsTest < ActionDispatch::IntegrationTest
     assert_equal "Les Lilas", preview.fetch("name")
     assert_not preview.key?("invite_token")
     assert_not preview.key?("members")
+    assert_equal [ coloc.memberships.pick(:color) ], JSON.parse(response.body).fetch("taken_colors")
 
-    assert_difference "Membership.count", 1 do
+    assert_no_difference "Membership.count" do
       post api_invitation_path(coloc.invite_token), as: :json
     end
+    assert_response :unprocessable_entity
+    assert_includes JSON.parse(response.body).fetch("errors").join, "couleur"
+
+    assert_difference "Membership.count", 1 do
+      post api_invitation_path(coloc.invite_token), params: { color: "#f80" }, as: :json
+    end
     assert_response :created
+    assert_equal "#ff8800", coloc.memberships.find_by!(user: guest).color
 
     assert_no_difference "Membership.count" do
       post api_invitation_path(coloc.invite_token), as: :json
     end
     assert_response :success
     assert_equal 2, coloc.reload.memberships_count
+  end
+
+  test "refuses a color already taken in the coloc" do
+    coloc = create_coloc
+    sign_in(create_user("guest@coloc.test"))
+    taken = coloc.memberships.pick(:color)
+
+    assert_no_difference "Membership.count" do
+      post api_invitation_path(coloc.invite_token), params: { color: taken }, as: :json
+    end
+
+    assert_response :unprocessable_entity
+    assert_includes JSON.parse(response.body).fetch("errors").join, "couleur"
   end
 
   test "refuses a 31st member" do

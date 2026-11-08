@@ -48,15 +48,19 @@ export async function fetchColoc(id: number | string) {
   return data.coloc
 }
 
-export async function fetchInvitation(token: string) {
-  const data = await api<{ coloc: ColocSummary }>(`/api/invitations/${token}`)
-  return data.coloc
+export type InvitationPreview = {
+  coloc: ColocSummary
+  taken_colors: string[]
 }
 
-export async function joinColoc(token: string) {
+export async function fetchInvitation(token: string) {
+  return api<InvitationPreview>(`/api/invitations/${token}`)
+}
+
+export async function joinColoc(token: string, color: string) {
   const data = await api<{ coloc: Coloc }>(`/api/invitations/${token}`, {
     method: 'POST',
-    body: '{}',
+    body: JSON.stringify({ color }),
   })
   return data.coloc
 }

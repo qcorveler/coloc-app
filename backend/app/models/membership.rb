@@ -20,6 +20,7 @@ class Membership < ApplicationRecord
   belongs_to :user
   belongs_to :coloc, counter_cache: true
 
+  before_validation :normalize_color
   before_validation :assign_default_color, on: :create
 
   validates :user_id, uniqueness: { scope: :coloc_id }
@@ -42,6 +43,17 @@ class Membership < ApplicationRecord
     color: "La couleur"
   }.freeze
 
+  def normalize_color
+    return if color.blank?
+
+    value = color.to_s.strip.downcase
+    value = "##{value}" unless value.start_with?("#")
+    if value.match?(/\A#[0-9a-f]{3}\z/)
+      value = "##{value[1] * 2}#{value[2] * 2}#{value[3] * 2}"
+    end
+    self.color = value
+  end
+
   def assign_default_color
     return if color.present?
 
@@ -52,8 +64,8 @@ class Membership < ApplicationRecord
   def color_known
     if color.blank?
       errors.add(:color, "est obligatoire")
-    elsif !COLORS.include?(color)
-      errors.add(:color, "n'est pas disponible")
+    elsif !color.match?(/\A#[0-9a-f]{6}\z/)
+      errors.add(:color, "doit être une couleur HTML")
     end
   end
 
